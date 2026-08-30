@@ -28,6 +28,10 @@ jobs:
           mkdir -p app
           tar -xJf /tmp/rpa106-source.tar.xz -C app
           grep -q '^version: 1.0.6+7$' app/pubspec.yaml
+          # API 37 is not published on the stable runner. The app targets Android 36
+          # and does not use API 37-only calls, so compile against stable API 36.
+          sed -i 's/compileSdk = 37/compileSdk = 36/' app/android/app/build.gradle.kts
+          grep -q 'compileSdk = 36' app/android/app/build.gradle.kts
 
       - name: Restore debug image assets
         shell: bash
@@ -42,7 +46,7 @@ jobs:
           done
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -57,11 +61,12 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android API 37
+      - name: Install Android API 36
         shell: bash
         run: |
+          set -euo pipefail
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager 'platform-tools' 'platforms;android-37' 'build-tools;36.0.0'
+          sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
 
       - name: Set up Gradle 9.5.0
         uses: gradle/actions/setup-gradle@v4
