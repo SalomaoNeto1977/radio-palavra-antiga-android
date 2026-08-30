@@ -32,6 +32,26 @@ jobs:
           sed -i 's/compileSdk = 37/compileSdk = 36/' app/android/app/build.gradle.kts
           grep -q 'compileSdk = 36' app/android/app/build.gradle.kts
 
+      - name: Apply verified 1.0.6 source fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('app/lib/radio_audio_handler.dart')
+          source = path.read_text()
+          old_ctor = """class SharedPreferencesVehicleResumeStore implements VehicleResumeStore {\n  SharedPreferencesVehicleResumeStore({SharedPreferencesAsync? preferences})\n    : _preferences = preferences ?? SharedPreferencesAsync();\n"""
+          new_ctor = """class SharedPreferencesVehicleResumeStore implements VehicleResumeStore {\n  SharedPreferencesVehicleResumeStore({SharedPreferencesAsync? preferences})\n    : _providedPreferences = preferences;\n"""
+          old_field = """  final SharedPreferencesAsync _preferences;\n"""
+          new_field = """  // Resolve platform preferences only when vehicle state is actually read/written.\n  // This keeps app startup and pure unit tests independent of platform storage.\n  final SharedPreferencesAsync? _providedPreferences;\n  SharedPreferencesAsync? _lazyPreferences;\n\n  SharedPreferencesAsync get _preferences =>\n      _providedPreferences ?? (_lazyPreferences ??= SharedPreferencesAsync());\n"""
+          if old_ctor not in source or old_field not in source:
+              raise SystemExit('Expected SharedPreferences source block not found')
+          source = source.replace(old_ctor, new_ctor, 1).replace(old_field, new_field, 1)
+          path.write_text(source)
+          if '_preferences = preferences ?? SharedPreferencesAsync()' in source:
+              raise SystemExit('Eager SharedPreferences construction still present')
+          PY
+
       - name: Restore and verify test suite
         shell: bash
         run: |
@@ -114,9 +134,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s app/build/app/outputs/flutter-apk/app-debug.apk
-          cp app/build/app/outputs/flutter-apk/app-debug.apk Radio-Palavra-Antiga-1.0.6-teste.apk
+          APK='app/build/app/outputs/flutter-apk/app-debug.apk'
+          test -s "$APK"
+          cp "$APK" Radio-Palavra-Antiga-1.0.6-teste.apk
           unzip -t Radio-Palavra-Antiga-1.0.6-teste.apk >/dev/null
+          AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
+          "$AAPT" dump badging Radio-Palavra-Antiga-1.0.6-teste.apk | tee APK-INFO.txt
+          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='7' versionName='1.0.6-debug'" APK-INFO.txt
           sha256sum Radio-Palavra-Antiga-1.0.6-teste.apk | tee SHA256.txt
           ls -lh Radio-Palavra-Antiga-1.0.6-teste.apk
 
@@ -127,5 +151,6 @@ jobs:
           path: |
             Radio-Palavra-Antiga-1.0.6-teste.apk
             SHA256.txt
+            APK-INFO.txt
           if-no-files-found: error
           retention-days: 14
