@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'ci/**'
+      - 'build-assets/**'
       - '.github/workflows/build-debug-apk.yml'
 
 permissions:
@@ -28,10 +29,18 @@ jobs:
           mkdir -p app
           tar -xJf /tmp/rpa106-source.tar.xz -C app
           grep -q '^version: 1.0.6+7$' app/pubspec.yaml
-          # API 37 is not published on the stable runner. The app targets Android 36
-          # and does not use API 37-only calls, so compile against stable API 36.
           sed -i 's/compileSdk = 37/compileSdk = 36/' app/android/app/build.gradle.kts
           grep -q 'compileSdk = 36' app/android/app/build.gradle.kts
+
+      - name: Restore and verify test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d build-assets/tests.tar.gz.b64 > /tmp/rpa106-tests.tar.gz
+          echo 'ae69fb108a43a51045f8bfa21b3387619530b80e23939da6eb3cb2108c18aac8  /tmp/rpa106-tests.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/rpa106-tests.tar.gz -C app
+          test -f app/test/webview_command_parser_test.dart
+          test -f app/test/rpa_bridge_dom_test.js
 
       - name: Restore debug image assets
         shell: bash
@@ -89,9 +98,13 @@ jobs:
         working-directory: app
         run: flutter analyze --no-fatal-infos
 
-      - name: Run tests
+      - name: Run Flutter tests
         working-directory: app
         run: flutter test
+
+      - name: Run WebView bridge JavaScript tests
+        working-directory: app
+        run: node test/rpa_bridge_dom_test.js
 
       - name: Build debug APK
         working-directory: app
