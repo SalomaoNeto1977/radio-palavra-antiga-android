@@ -1,0 +1,1 @@
+Trigger verified 1.0.6 build with restored Flutter and JavaScript test suite.
