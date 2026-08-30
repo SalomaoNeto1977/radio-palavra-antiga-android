@@ -1,0 +1,92 @@
+name: Update Radio Palavra Antiga playlist catalog
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-radio-playlist-catalog
+  cancel-in-progress: false
+
+jobs:
+  update-catalog:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test catalog generator
+        run: python3 -m unittest discover -s ci/tests -p 'test_*.py' -v
+
+      - name: Generate safe public catalog
+        env:
+          AZURACAST_API_KEY: ${{ secrets.AZURACAST_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${AZURACAST_API_KEY:-}" ]]; then
+            echo '::error::O segredo AZURACAST_API_KEY não está configurado.'
+            exit 1
+          fi
+          echo "::add-mask::${AZURACAST_API_KEY}"
+          python3 ci/generate_playlist_manifest.py \
+            --output /tmp/official_playlists.json
+          test -s /tmp/official_playlists.json
+          if grep -Fq -- "${AZURACAST_API_KEY}" /tmp/official_playlists.json; then
+            echo '::error::O catálogo contém dados privados.'
+            exit 1
+          fi
+
+      - name: Publish only when the catalog changed
+        id: catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import shutil
+          from pathlib import Path
+
+          destination = Path('catalog/official_playlists.json')
+          generated = Path('/tmp/official_playlists.json')
+          new_catalog = json.loads(generated.read_text(encoding='utf-8'))
+          previous_catalog = None
+          if destination.exists():
+              previous_catalog = json.loads(destination.read_text(encoding='utf-8'))
+
+          def comparable(value):
+              if not isinstance(value, dict):
+                  return value
+              copy = dict(value)
+              copy.pop('generated_at', None)
+              return copy
+
+          changed = comparable(previous_catalog) != comparable(new_catalog)
+          with Path(os.environ['GITHUB_OUTPUT']).open('a', encoding='utf-8') as output:
+              output.write(f'changed={str(changed).lower()}\n')
+          if changed:
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(generated, destination)
+              print('O catálogo público foi alterado.')
+          else:
+              print('Sem alterações nas playlists ou músicas.')
+          PY
+
+      - name: Commit catalog
+        if: steps.catalog.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalog/official_playlists.json
+          git commit -m 'Update public playlist catalog'
+          git pull --rebase origin main
+          git push origin HEAD:main

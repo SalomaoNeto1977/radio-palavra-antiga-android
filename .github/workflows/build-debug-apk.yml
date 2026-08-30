@@ -1,4 +1,4 @@
-name: Build Radio Palavra Antiga 1.0.7 APK
+name: Build Radio Palavra Antiga 1.0.8 APK
 
 on:
   workflow_dispatch:
@@ -24,16 +24,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa107-source.tar.xz
-          echo '71d5ebfebd807798af249fe5b3e9b601f59c97c511f2446b8c682fad2e2dcd97  /tmp/rpa107-source.tar.xz' | sha256sum -c -
+          base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa108-source.tar.xz
+          echo '3821e31aeb5bfd04efc6b73028fc0ccaccac1f5b48c7ec6214fe914165e2f764  /tmp/rpa108-source.tar.xz' | sha256sum -c -
           mkdir -p app
-          tar -xJf /tmp/rpa107-source.tar.xz -C app
-          grep -q '^version: 1.0.7+8$' app/pubspec.yaml
+          tar -xJf /tmp/rpa108-source.tar.xz -C app
+          grep -q '^version: 1.0.8+9$' app/pubspec.yaml
           grep -q "label: 'Rádio'" app/lib/radio_webview.dart
           grep -q "label: 'Música'" app/lib/radio_webview.dart
           grep -q "label: 'WhatsApp'" app/lib/radio_webview.dart
           grep -q 'official_playlists.json' app/pubspec.yaml
           grep -q "data-view='official'" app/web_integration/rpa_bridge.js
+          grep -q '__RPA_UPDATE_OFFICIAL_PLAYLISTS' app/web_integration/rpa_bridge.js
+          grep -q "🎙 Pedir" app/web_integration/rpa_bridge.js
+          grep -q 'requestableSongsApi' app/lib/config/radio_config.dart
+          grep -q 'OfficialPlaylistCatalogService' app/lib/radio_webview.dart
+          if grep -q 'NAV_REQUESTS' app/web_integration/rpa_bridge.js; then
+            echo '::error::A interface de pedidos não deve criar um quarto destino.'
+            exit 1
+          fi
           grep -q 'compileSdk = 36' app/android/app/build.gradle.kts
           grep -q 'permission_handler: \^12.0.1' app/pubspec.yaml
           grep -q 'id "com.android.library"$' app/packages/vehicle_connection_monitor/android/build.gradle
@@ -92,6 +100,47 @@ jobs:
               statistics.get('public_tracks', 0),
               'músicas On-Demand.',
           )
+          PY
+
+      - name: Validate public AzuraCast request catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from urllib.parse import urljoin, urlparse
+          from urllib.request import Request, urlopen
+
+          endpoint = 'https://radio.palavraantiga.org/api/station/palavraantiga/requests'
+          request = Request(
+              endpoint,
+              headers={
+                  'Accept': 'application/json',
+                  'User-Agent': 'RadioPalavraAntiga-Build/1.0',
+              },
+          )
+          with urlopen(request, timeout=90) as response:
+              payload = json.loads(response.read().decode('utf-8'))
+          rows = payload if isinstance(payload, list) else payload.get('rows', [])
+          valid = 0
+          song_ids = set()
+          for row in rows:
+              if not isinstance(row, dict) or not isinstance(row.get('song'), dict):
+                  continue
+              request_id = str(row.get('request_id') or '').strip()
+              song_id = str(row['song'].get('id') or '').strip()
+              parsed = urlparse(urljoin(endpoint, str(row.get('request_url') or '')))
+              if (
+                  request_id
+                  and song_id
+                  and parsed.scheme == 'https'
+                  and parsed.hostname == 'radio.palavraantiga.org'
+                  and parsed.path.endswith('/request/' + request_id)
+              ):
+                  valid += 1
+                  song_ids.add(song_id)
+          assert valid > 0, 'O AzuraCast não devolveu pedidos públicos válidos.'
+          print('Pedidos públicos validados:', valid, 'entradas e', len(song_ids), 'músicas.')
           PY
 
       - name: Set up Java 17
@@ -156,20 +205,20 @@ jobs:
           set -euo pipefail
           APK='app/build/app/outputs/flutter-apk/app-debug.apk'
           test -s "${APK}"
-          cp "${APK}" Radio-Palavra-Antiga-1.0.7-teste.apk
-          unzip -t Radio-Palavra-Antiga-1.0.7-teste.apk >/dev/null
+          cp "${APK}" Radio-Palavra-Antiga-1.0.8-teste.apk
+          unzip -t Radio-Palavra-Antiga-1.0.8-teste.apk >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
-          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.7-teste.apk | tee APK-INFO.txt
-          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='8' versionName='1.0.7-debug'" APK-INFO.txt
-          sha256sum Radio-Palavra-Antiga-1.0.7-teste.apk | tee SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.7-teste.apk
+          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.8-teste.apk | tee APK-INFO.txt
+          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='9' versionName='1.0.8-debug'" APK-INFO.txt
+          sha256sum Radio-Palavra-Antiga-1.0.8-teste.apk | tee SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.8-teste.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.7-teste
+          name: Radio-Palavra-Antiga-1.0.8-teste
           path: |
-            Radio-Palavra-Antiga-1.0.7-teste.apk
+            Radio-Palavra-Antiga-1.0.8-teste.apk
             SHA256.txt
             APK-INFO.txt
           if-no-files-found: error
