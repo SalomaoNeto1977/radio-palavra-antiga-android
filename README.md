@@ -2,4 +2,4 @@
 
 Aplicação Android oficial da Rádio Cristã Portuguesa Palavra Antiga.
 
-Este repositório passa a ser a fonte oficial do projeto Flutter/Android. A versão em preparação é a 1.0.6, com navegação inferior permanente Rádio | Música | WhatsApp e catálogo On-Demand do AzuraCast.
+Este repositório é a fonte oficial do projeto Flutter/Android. A versão em preparação é a 1.0.7, com navegação inferior permanente Rádio | Música | WhatsApp e músicas On-Demand agrupadas pelas playlists oficiais do AzuraCast.

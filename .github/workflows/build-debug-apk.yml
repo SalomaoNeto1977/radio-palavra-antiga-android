@@ -1,4 +1,4 @@
-name: Build Radio Palavra Antiga 1.0.6 APK
+name: Build Radio Palavra Antiga 1.0.7 APK
 
 on:
   workflow_dispatch:
@@ -24,14 +24,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa106-source.tar.xz
-          echo '1a7d926325d2e85a52b8058fca218906225941a91b9cdd8845c72aaa9221a8ec  /tmp/rpa106-source.tar.xz' | sha256sum -c -
+          base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa107-source.tar.xz
+          echo '71d5ebfebd807798af249fe5b3e9b601f59c97c511f2446b8c682fad2e2dcd97  /tmp/rpa107-source.tar.xz' | sha256sum -c -
           mkdir -p app
-          tar -xJf /tmp/rpa106-source.tar.xz -C app
-          grep -q '^version: 1.0.6+7$' app/pubspec.yaml
+          tar -xJf /tmp/rpa107-source.tar.xz -C app
+          grep -q '^version: 1.0.7+8$' app/pubspec.yaml
           grep -q "label: 'Rádio'" app/lib/radio_webview.dart
           grep -q "label: 'Música'" app/lib/radio_webview.dart
           grep -q "label: 'WhatsApp'" app/lib/radio_webview.dart
+          grep -q 'official_playlists.json' app/pubspec.yaml
+          grep -q "data-view='official'" app/web_integration/rpa_bridge.js
           grep -q 'compileSdk = 36' app/android/app/build.gradle.kts
           grep -q 'permission_handler: \^12.0.1' app/pubspec.yaml
           grep -q 'id "com.android.library"$' app/packages/vehicle_connection_monitor/android/build.gradle
@@ -49,6 +51,48 @@ jobs:
             mkdir -p "app/android/app/src/main/res/mipmap-${density}"
             cp /tmp/rpa-debug-icon.png "app/android/app/src/main/res/mipmap-${density}/ic_launcher.png"
           done
+
+      - name: Test playlist manifest generator
+        working-directory: app
+        run: python3 -m unittest discover -s test/python -p 'test_*.py' -v
+
+      - name: Generate official AzuraCast playlist catalog
+        shell: bash
+        env:
+          AZURACAST_API_KEY: ${{ secrets.AZURACAST_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${AZURACAST_API_KEY:-}" ]]; then
+            echo '::error::O segredo AZURACAST_API_KEY não está configurado.'
+            exit 1
+          fi
+          echo "::add-mask::${AZURACAST_API_KEY}"
+          python3 app/tools/generate_playlist_manifest.py \
+            --output app/assets/data/official_playlists.json
+          test -s app/assets/data/official_playlists.json
+          if grep -Fq -- "${AZURACAST_API_KEY}" app/assets/data/official_playlists.json; then
+            echo '::error::O catálogo gerado contém dados que não devem ser publicados.'
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(
+              Path('app/assets/data/official_playlists.json').read_text(encoding='utf-8')
+          )
+          playlists = manifest.get('playlists', [])
+          statistics = manifest.get('statistics', {})
+          assert playlists, 'O catálogo oficial não contém playlists.'
+          assert statistics.get('mapped_tracks', 0) > 0, 'Nenhuma música foi associada.'
+          print(
+              'Catálogo público validado:',
+              len(playlists),
+              'grupos e',
+              statistics.get('public_tracks', 0),
+              'músicas On-Demand.',
+          )
+          PY
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -112,20 +156,20 @@ jobs:
           set -euo pipefail
           APK='app/build/app/outputs/flutter-apk/app-debug.apk'
           test -s "${APK}"
-          cp "${APK}" Radio-Palavra-Antiga-1.0.6-teste.apk
-          unzip -t Radio-Palavra-Antiga-1.0.6-teste.apk >/dev/null
+          cp "${APK}" Radio-Palavra-Antiga-1.0.7-teste.apk
+          unzip -t Radio-Palavra-Antiga-1.0.7-teste.apk >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
-          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.6-teste.apk | tee APK-INFO.txt
-          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='7' versionName='1.0.6-debug'" APK-INFO.txt
-          sha256sum Radio-Palavra-Antiga-1.0.6-teste.apk | tee SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.6-teste.apk
+          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.7-teste.apk | tee APK-INFO.txt
+          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='8' versionName='1.0.7-debug'" APK-INFO.txt
+          sha256sum Radio-Palavra-Antiga-1.0.7-teste.apk | tee SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.7-teste.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.6-teste
+          name: Radio-Palavra-Antiga-1.0.7-teste
           path: |
-            Radio-Palavra-Antiga-1.0.6-teste.apk
+            Radio-Palavra-Antiga-1.0.7-teste.apk
             SHA256.txt
             APK-INFO.txt
           if-no-files-found: error
