@@ -25,15 +25,16 @@ jobs:
         run: |
           set -euo pipefail
           base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa106-source.tar.xz
-          echo '88823fba84396f73c5b2c0b2c6905acb1bca9826b5ec6f5bd52f0fd7e572e74c  /tmp/rpa106-source.tar.xz' | sha256sum -c -
+          echo '1a7d926325d2e85a52b8058fca218906225941a91b9cdd8845c72aaa9221a8ec  /tmp/rpa106-source.tar.xz' | sha256sum -c -
           mkdir -p app
           tar -xJf /tmp/rpa106-source.tar.xz -C app
           grep -q '^version: 1.0.6+7$' app/pubspec.yaml
           grep -q "label: 'Rádio'" app/lib/radio_webview.dart
           grep -q "label: 'Música'" app/lib/radio_webview.dart
           grep -q "label: 'WhatsApp'" app/lib/radio_webview.dart
-          sed -i 's/compileSdk = 37/compileSdk = 36/' app/android/app/build.gradle.kts
           grep -q 'compileSdk = 36' app/android/app/build.gradle.kts
+          grep -q 'permission_handler: \^12.0.1' app/pubspec.yaml
+          grep -q 'id "com.android.library"$' app/packages/vehicle_connection_monitor/android/build.gradle
 
       - name: Restore debug image assets
         shell: bash
