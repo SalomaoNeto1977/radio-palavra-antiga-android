@@ -5,8 +5,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'ci/**'
-      - 'build-assets/**'
+      - 'ci/rpa106-nav-source.tar.xz.b64'
+      - 'build-assets/debug-icon.png.b64'
       - '.github/workflows/build-debug-apk.yml'
 
 permissions:
@@ -24,54 +24,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat ci/source.part* > /tmp/rpa106-source.tar.xz
-          echo '6913bb4ae795a9472c9f1c8b94dde3bc80fc49820496449e489bc029e9a030b4  /tmp/rpa106-source.tar.xz' | sha256sum -c -
+          base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa106-source.tar.xz
+          echo '88823fba84396f73c5b2c0b2c6905acb1bca9826b5ec6f5bd52f0fd7e572e74c  /tmp/rpa106-source.tar.xz' | sha256sum -c -
           mkdir -p app
           tar -xJf /tmp/rpa106-source.tar.xz -C app
           grep -q '^version: 1.0.6+7$' app/pubspec.yaml
+          grep -q "label: 'Rádio'" app/lib/radio_webview.dart
+          grep -q "label: 'Música'" app/lib/radio_webview.dart
+          grep -q "label: 'WhatsApp'" app/lib/radio_webview.dart
           sed -i 's/compileSdk = 37/compileSdk = 36/' app/android/app/build.gradle.kts
           grep -q 'compileSdk = 36' app/android/app/build.gradle.kts
-
-      - name: Apply verified 1.0.6 source fix
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('app/lib/radio_audio_handler.dart')
-          source = path.read_text()
-          old_ctor = """class SharedPreferencesVehicleResumeStore implements VehicleResumeStore {\n  SharedPreferencesVehicleResumeStore({SharedPreferencesAsync? preferences})\n    : _preferences = preferences ?? SharedPreferencesAsync();\n"""
-          new_ctor = """class SharedPreferencesVehicleResumeStore implements VehicleResumeStore {\n  SharedPreferencesVehicleResumeStore({SharedPreferencesAsync? preferences})\n    : _providedPreferences = preferences;\n"""
-          old_field = """  final SharedPreferencesAsync _preferences;\n"""
-          new_field = """  // Resolve platform preferences only when vehicle state is actually read/written.\n  // This keeps app startup and pure unit tests independent of platform storage.\n  final SharedPreferencesAsync? _providedPreferences;\n  SharedPreferencesAsync? _lazyPreferences;\n\n  SharedPreferencesAsync get _preferences =>\n      _providedPreferences ?? (_lazyPreferences ??= SharedPreferencesAsync());\n"""
-          if old_ctor not in source or old_field not in source:
-              raise SystemExit('Expected SharedPreferences source block not found')
-          source = source.replace(old_ctor, new_ctor, 1).replace(old_field, new_field, 1)
-          path.write_text(source)
-          if '_preferences = preferences ?? SharedPreferencesAsync()' in source:
-              raise SystemExit('Eager SharedPreferences construction still present')
-          PY
-
-      - name: Restore and verify test suite
-        shell: bash
-        run: |
-          set -euo pipefail
-          base64 -d build-assets/tests.tar.gz.b64 > /tmp/rpa106-tests.tar.gz
-          echo 'ae69fb108a43a51045f8bfa21b3387619530b80e23939da6eb3cb2108c18aac8  /tmp/rpa106-tests.tar.gz' | sha256sum -c -
-          tar -xzf /tmp/rpa106-tests.tar.gz -C app
-          test -f app/test/webview_command_parser_test.dart
-          test -f app/test/rpa_bridge_dom_test.js
 
       - name: Restore debug image assets
         shell: bash
         run: |
           set -euo pipefail
-          echo 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z9xkAAAAASUVORK5CYII=' | base64 -d > /tmp/rpa-placeholder.png
+          base64 --decode build-assets/debug-icon.png.b64 > /tmp/rpa-debug-icon.png
+          test -s /tmp/rpa-debug-icon.png
+          file /tmp/rpa-debug-icon.png | grep -q 'PNG image data'
           mkdir -p app/assets/images
-          cp /tmp/rpa-placeholder.png app/assets/images/logo.png
-          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-            mkdir -p "app/android/app/src/main/res/mipmap-$d"
-            cp /tmp/rpa-placeholder.png "app/android/app/src/main/res/mipmap-$d/ic_launcher.png"
+          cp /tmp/rpa-debug-icon.png app/assets/images/logo.png
+          for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            mkdir -p "app/android/app/src/main/res/mipmap-${density}"
+            cp /tmp/rpa-debug-icon.png "app/android/app/src/main/res/mipmap-${density}/ic_launcher.png"
           done
 
       - name: Set up Java 17
@@ -124,7 +99,7 @@ jobs:
 
       - name: Run WebView bridge JavaScript tests
         working-directory: app
-        run: node test/rpa_bridge_dom_test.js
+        run: node --test test/rpa_bridge_dom_test.js
 
       - name: Build debug APK
         working-directory: app
@@ -135,11 +110,11 @@ jobs:
         run: |
           set -euo pipefail
           APK='app/build/app/outputs/flutter-apk/app-debug.apk'
-          test -s "$APK"
-          cp "$APK" Radio-Palavra-Antiga-1.0.6-teste.apk
+          test -s "${APK}"
+          cp "${APK}" Radio-Palavra-Antiga-1.0.6-teste.apk
           unzip -t Radio-Palavra-Antiga-1.0.6-teste.apk >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
-          "$AAPT" dump badging Radio-Palavra-Antiga-1.0.6-teste.apk | tee APK-INFO.txt
+          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.6-teste.apk | tee APK-INFO.txt
           grep -q "package: name='org.palavraantiga.radio.debug' versionCode='7' versionName='1.0.6-debug'" APK-INFO.txt
           sha256sum Radio-Palavra-Antiga-1.0.6-teste.apk | tee SHA256.txt
           ls -lh Radio-Palavra-Antiga-1.0.6-teste.apk
