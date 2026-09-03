@@ -123,9 +123,11 @@ def build_manifest(
             mapped_track_ids.add(track_id)
 
     official_playlists: list[dict[str, Any]] = []
+    empty_playlists = 0
     for playlist in eligible.values():
         tracks = sorted(playlist["track_ids"])
         if not tracks:
+            empty_playlists += 1
             continue
         official_playlists.append(
             {
@@ -167,6 +169,8 @@ def build_manifest(
             "official_playlists": sum(
                 1 for item in official_playlists if not item.get("is_fallback")
             ),
+            "selected_on_demand_playlists": len(eligible),
+            "empty_on_demand_playlists": empty_playlists,
         },
     }
 
@@ -314,6 +318,8 @@ def main(argv: Iterable[str] | None = None) -> int:
     print(
         "Playlists oficiais preparadas: "
         f"{stats['official_playlists']} playlists, "
+        f"de {stats['selected_on_demand_playlists']} marcadas para On-Demand "
+        f"({stats['empty_on_demand_playlists']} sem músicas públicas), "
         f"{stats['mapped_tracks']}/{stats['public_tracks']} músicas associadas, "
         f"{stats['unassigned_tracks']} por associar."
     )

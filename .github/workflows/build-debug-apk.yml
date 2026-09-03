@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa110-source.tar.xz
-          echo '254564db23464df83c35fa0ff89f94313ebcdbcdf38a26a54946f4490d10a301  /tmp/rpa110-source.tar.xz' | sha256sum -c -
+          echo '2fd3bb6d89f946bca5f09ef6d3e011c7fb8b18072fd9b30840406be9deabea45  /tmp/rpa110-source.tar.xz' | sha256sum -c -
           mkdir -p app
           tar -xJf /tmp/rpa110-source.tar.xz -C app
           grep -q '^version: 1.0.10+11$' app/pubspec.yaml
@@ -50,13 +50,41 @@ jobs:
           grep -q 'permission_handler: \^12.0.1' app/pubspec.yaml
           grep -q 'id "com.android.library"$' app/packages/vehicle_connection_monitor/android/build.gradle
 
-      - name: Restore debug image assets
+      - name: Restore and verify official image assets
         shell: bash
         run: |
           set -euo pipefail
           base64 --decode build-assets/debug-icon.png.b64 > /tmp/rpa-debug-icon.png
           test -s /tmp/rpa-debug-icon.png
           file /tmp/rpa-debug-icon.png | grep -q 'PNG image data'
+          python3 - <<'PY'
+          import struct
+          import zlib
+          from pathlib import Path
+
+          data = Path('/tmp/rpa-debug-icon.png').read_bytes()
+          assert data.startswith(b'\x89PNG\r\n\x1a\n'), 'Assinatura PNG inválida.'
+          offset = 8
+          width = height = 0
+          found_end = False
+          while offset + 12 <= len(data):
+              length = struct.unpack('>I', data[offset:offset + 4])[0]
+              chunk_type = data[offset + 4:offset + 8]
+              chunk = data[offset + 8:offset + 8 + length]
+              expected_crc = struct.unpack(
+                  '>I', data[offset + 8 + length:offset + 12 + length]
+              )[0]
+              assert zlib.crc32(chunk_type + chunk) & 0xFFFFFFFF == expected_crc
+              if chunk_type == b'IHDR':
+                  width, height = struct.unpack('>II', chunk[:8])
+              offset += 12 + length
+              if chunk_type == b'IEND':
+                  found_end = True
+                  break
+          assert found_end and offset == len(data), 'O PNG está truncado.'
+          assert width >= 192 and height >= 192, 'O logótipo é demasiado pequeno.'
+          print(f'Logótipo oficial validado: {width}x{height}.')
+          PY
           mkdir -p app/assets/images
           cp /tmp/rpa-debug-icon.png app/assets/images/logo.png
           for density in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
@@ -100,7 +128,11 @@ jobs:
           print(
               'Catálogo público validado:',
               len(playlists),
-              'grupos e',
+              'grupos utilizáveis de',
+              statistics.get('selected_on_demand_playlists', len(playlists)),
+              'marcados; vazios:',
+              statistics.get('empty_on_demand_playlists', 0),
+              '—',
               statistics.get('public_tracks', 0),
               'músicas On-Demand.',
           )

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(PROJECT_ROOT / "tools"))
+sys.path.insert(0, str(PROJECT_ROOT / "ci"))
 
 from generate_playlist_manifest import (  # noqa: E402
     ManifestError,
@@ -35,6 +35,12 @@ class PlaylistManifestTest(unittest.TestCase):
                     "is_enabled": True,
                     "include_in_on_demand": False,
                 },
+                {
+                    "id": 12,
+                    "name": "Vazia",
+                    "is_enabled": True,
+                    "include_in_on_demand": True,
+                },
             ]
         }
         media = [
@@ -56,6 +62,10 @@ class PlaylistManifestTest(unittest.TestCase):
 
         self.assertEqual(manifest["statistics"]["mapped_tracks"], 2)
         self.assertEqual(manifest["statistics"]["unassigned_tracks"], 1)
+        self.assertEqual(
+            manifest["statistics"]["selected_on_demand_playlists"], 2
+        )
+        self.assertEqual(manifest["statistics"]["empty_on_demand_playlists"], 1)
         self.assertEqual(manifest["playlists"][0]["name"], "Louvor")
         self.assertEqual(
             manifest["playlists"][0]["track_ids"],

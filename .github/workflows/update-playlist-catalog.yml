@@ -2,6 +2,12 @@ name: Update Radio Palavra Antiga playlist catalog
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ci/generate_playlist_manifest.py'
+      - 'ci/tests/test_generate_playlist_manifest.py'
+      - '.github/workflows/update-playlist-catalog.yml'
   schedule:
     - cron: '17 * * * *'
 
