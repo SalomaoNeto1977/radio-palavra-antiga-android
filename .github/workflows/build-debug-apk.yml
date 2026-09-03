@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa110-source.tar.xz
-          echo '6a7adde4ca780f0b105cffaa65ce6e09a43d70363291c06412edda96e3d9072a  /tmp/rpa110-source.tar.xz' | sha256sum -c -
+          echo '254564db23464df83c35fa0ff89f94313ebcdbcdf38a26a54946f4490d10a301  /tmp/rpa110-source.tar.xz' | sha256sum -c -
           mkdir -p app
           tar -xJf /tmp/rpa110-source.tar.xz -C app
           grep -q '^version: 1.0.10+11$' app/pubspec.yaml
