@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa111-source.tar.xz
-          echo '3a18bfd2ee61ef884b04505dc259a97116cc7b50117b22bd475edfa3e8bba0ee  /tmp/rpa111-source.tar.xz' | sha256sum -c -
+          echo 'fe0bac206f4df21e118a953f16febf71beef8e9c94a48106d46bd8d0b12b6de3  /tmp/rpa111-source.tar.xz' | sha256sum -c -
           mkdir -p app
           tar -xJf /tmp/rpa111-source.tar.xz -C app
           grep -q '^version: 1.0.11+12$' app/pubspec.yaml
@@ -43,7 +43,7 @@ jobs:
           grep -q '__RPA_SET_ACTIVE' app/web_integration/rpa_bridge.js
           grep -q '__RPA_SET_MUSIC_ACCESS' app/web_integration/rpa_bridge.js
           grep -q 'OPEN_SUBSCRIPTIONS' app/web_integration/rpa_bridge.js
-          grep -q 'apoio_mensal_399' app/lib/supporter_subscription.dart
+          grep -q 'apoio_mensal_590' app/lib/supporter_subscription.dart
           grep -q 'musicAccess.hasMusicAccess' app/lib/radio_audio_handler.dart
           grep -q 'android:resource="@xml/automotive_app_desc"' app/android/app/src/main/AndroidManifest.xml
           if grep -q 'NAV_REQUESTS' app/web_integration/rpa_bridge.js; then
@@ -263,3 +263,56 @@ jobs:
             APK-INFO.txt
           if-no-files-found: error
           retention-days: 14
+
+      - name: Restore and validate private upload key
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          RPA_UPLOAD_KEYSTORE_B64: ${{ secrets.RPA_UPLOAD_KEYSTORE_B64 }}
+          RPA_UPLOAD_KEY_PASSWORD: ${{ secrets.RPA_UPLOAD_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${RPA_UPLOAD_KEYSTORE_B64}"
+          test -n "${RPA_UPLOAD_KEY_PASSWORD}"
+          printf '%s' "${RPA_UPLOAD_KEYSTORE_B64}" | base64 --decode > /tmp/radio-palavra-antiga-upload.jks
+          test -s /tmp/radio-palavra-antiga-upload.jks
+          keytool -list \
+            -keystore /tmp/radio-palavra-antiga-upload.jks \
+            -storepass:env RPA_UPLOAD_KEY_PASSWORD \
+            2>/dev/null | grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57'
+
+      - name: Build signed Play AAB
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: app
+        env:
+          RPA_STORE_FILE: /tmp/radio-palavra-antiga-upload.jks
+          RPA_STORE_PASSWORD: ${{ secrets.RPA_UPLOAD_KEY_PASSWORD }}
+          RPA_KEY_PASSWORD: ${{ secrets.RPA_UPLOAD_KEY_PASSWORD }}
+          RPA_KEY_ALIAS: radio-palavra-antiga
+        run: flutter build appbundle --release
+
+      - name: Validate signed Play AAB
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAB='app/build/app/outputs/bundle/release/app-release.aab'
+          test -s "${AAB}"
+          unzip -t "${AAB}" >/dev/null
+          keytool -printcert -jarfile "${AAB}" | tee AAB-CERTIFICATE.txt
+          grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57' AAB-CERTIFICATE.txt
+          cp "${AAB}" Radio-Palavra-Antiga-1.0.11-Play.aab
+          sha256sum Radio-Palavra-Antiga-1.0.11-Play.aab | tee AAB-SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.11-Play.aab
+
+      - name: Upload signed Play AAB
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Radio-Palavra-Antiga-1.0.11-Play-AAB
+          path: |
+            Radio-Palavra-Antiga-1.0.11-Play.aab
+            AAB-SHA256.txt
+            AAB-CERTIFICATE.txt
+          if-no-files-found: error
+          retention-days: 7
