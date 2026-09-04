@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa111-source.tar.xz
-          echo 'fe0bac206f4df21e118a953f16febf71beef8e9c94a48106d46bd8d0b12b6de3  /tmp/rpa111-source.tar.xz' | sha256sum -c -
+          echo '604c013f378e86f39d98afa61765927a227a212c4d56f26d7c5ca623c8fc6658  /tmp/rpa111-source.tar.xz' | sha256sum -c -
           mkdir -p app
           tar -xJf /tmp/rpa111-source.tar.xz -C app
           grep -q '^version: 1.0.11+12$' app/pubspec.yaml
@@ -51,6 +51,7 @@ jobs:
             exit 1
           fi
           grep -q 'compileSdk = 36' app/android/app/build.gradle.kts
+          grep -q 'project.name == "in_app_purchase_android"' app/android/build.gradle.kts
           grep -q 'permission_handler: \^12.0.1' app/pubspec.yaml
           grep -q 'id "com.android.library"$' app/packages/vehicle_connection_monitor/android/build.gradle
 
