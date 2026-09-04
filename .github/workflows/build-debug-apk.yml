@@ -1,4 +1,4 @@
-name: Build Radio Palavra Antiga 1.0.10 APK
+name: Build Radio Palavra Antiga 1.0.11 APK
 
 on:
   workflow_dispatch:
@@ -24,11 +24,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa110-source.tar.xz
-          echo '2fd3bb6d89f946bca5f09ef6d3e011c7fb8b18072fd9b30840406be9deabea45  /tmp/rpa110-source.tar.xz' | sha256sum -c -
+          base64 --decode ci/rpa106-nav-source.tar.xz.b64 > /tmp/rpa111-source.tar.xz
+          echo '3a18bfd2ee61ef884b04505dc259a97116cc7b50117b22bd475edfa3e8bba0ee  /tmp/rpa111-source.tar.xz' | sha256sum -c -
           mkdir -p app
-          tar -xJf /tmp/rpa110-source.tar.xz -C app
-          grep -q '^version: 1.0.10+11$' app/pubspec.yaml
+          tar -xJf /tmp/rpa111-source.tar.xz -C app
+          grep -q '^version: 1.0.11+12$' app/pubspec.yaml
           grep -q "label: 'Rádio'" app/lib/radio_webview.dart
           grep -q "label: 'Música'" app/lib/radio_webview.dart
           grep -q "label: 'WhatsApp'" app/lib/radio_webview.dart
@@ -41,6 +41,10 @@ jobs:
           grep -q 'AndroidAutoMediaLibrary.musicCategory' app/lib/radio_audio_handler.dart
           grep -q 'PlaybackSelection.onDemand' app/lib/radio_audio_handler.dart
           grep -q '__RPA_SET_ACTIVE' app/web_integration/rpa_bridge.js
+          grep -q '__RPA_SET_MUSIC_ACCESS' app/web_integration/rpa_bridge.js
+          grep -q 'OPEN_SUBSCRIPTIONS' app/web_integration/rpa_bridge.js
+          grep -q 'apoio_mensal_399' app/lib/supporter_subscription.dart
+          grep -q 'musicAccess.hasMusicAccess' app/lib/radio_audio_handler.dart
           grep -q 'android:resource="@xml/automotive_app_desc"' app/android/app/src/main/AndroidManifest.xml
           if grep -q 'NAV_REQUESTS' app/web_integration/rpa_bridge.js; then
             echo '::error::A interface de pedidos não deve criar um quarto destino.'
@@ -241,20 +245,20 @@ jobs:
           set -euo pipefail
           APK='app/build/app/outputs/flutter-apk/app-debug.apk'
           test -s "${APK}"
-          cp "${APK}" Radio-Palavra-Antiga-1.0.10-teste.apk
-          unzip -t Radio-Palavra-Antiga-1.0.10-teste.apk >/dev/null
+          cp "${APK}" Radio-Palavra-Antiga-1.0.11-teste.apk
+          unzip -t Radio-Palavra-Antiga-1.0.11-teste.apk >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
-          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.10-teste.apk | tee APK-INFO.txt
-          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='11' versionName='1.0.10-debug'" APK-INFO.txt
-          sha256sum Radio-Palavra-Antiga-1.0.10-teste.apk | tee SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.10-teste.apk
+          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.11-teste.apk | tee APK-INFO.txt
+          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='12' versionName='1.0.11-debug'" APK-INFO.txt
+          sha256sum Radio-Palavra-Antiga-1.0.11-teste.apk | tee SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.11-teste.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.10-teste
+          name: Radio-Palavra-Antiga-1.0.11-teste
           path: |
-            Radio-Palavra-Antiga-1.0.10-teste.apk
+            Radio-Palavra-Antiga-1.0.11-teste.apk
             SHA256.txt
             APK-INFO.txt
           if-no-files-found: error
