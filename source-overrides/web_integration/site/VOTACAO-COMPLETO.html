@@ -1,0 +1,295 @@
+<!--
+  BLOCO COMPLETO DE VOTAÇÃO — Rádio Palavra Antiga
+  Cola este bloco inteiro num único bloco «Incorporar código» da página /app1.
+  Remove antes os blocos antigos com id="rpa-voto-musica" para não duplicar a votação.
+-->
+
+<div id="rpa-voto-musica" class="rpa-voto-musica" data-rpa-vote-widget="true">
+  <span class="rpa-voto-titulo">Gostaste desta música?</span>
+
+  <div class="rpa-voto-botoes" role="group" aria-label="Avaliar a música">
+    <button type="button" data-rpa-rating="dislike" aria-label="Não gostei" title="Não gostei">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9"></circle>
+        <circle cx="9" cy="10" r="0.9" fill="currentColor" stroke="none"></circle>
+        <circle cx="15" cy="10" r="0.9" fill="currentColor" stroke="none"></circle>
+        <path d="M8.5 16c1.1-1.2 2.2-1.8 3.5-1.8s2.4.6 3.5 1.8"></path>
+      </svg>
+    </button>
+
+    <button type="button" data-rpa-rating="neutral" aria-label="Mais ou menos" title="Mais ou menos">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9"></circle>
+        <circle cx="9" cy="10" r="0.9" fill="currentColor" stroke="none"></circle>
+        <circle cx="15" cy="10" r="0.9" fill="currentColor" stroke="none"></circle>
+        <path d="M8.8 15h6.4"></path>
+      </svg>
+    </button>
+
+    <button type="button" data-rpa-rating="like" aria-label="Gostei" title="Gostei">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9"></circle>
+        <circle cx="9" cy="10" r="0.9" fill="currentColor" stroke="none"></circle>
+        <circle cx="15" cy="10" r="0.9" fill="currentColor" stroke="none"></circle>
+        <path d="M8.5 14.5c1.1 1.4 2.2 2.1 3.5 2.1s2.4-.7 3.5-2.1"></path>
+      </svg>
+    </button>
+  </div>
+
+  <span class="rpa-voto-status" data-rpa-vote-status aria-live="polite"></span>
+</div>
+
+<style>
+  .rpa-voto-musica {
+    width: min(100%, 360px);
+    margin: 8px auto 0;
+    padding: 3px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    box-sizing: border-box;
+    color: #d6b35a;
+    font-family: inherit;
+  }
+
+  .rpa-voto-titulo {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    opacity: .88;
+    white-space: nowrap;
+  }
+
+  .rpa-voto-botoes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .rpa-voto-botoes button {
+    width: 30px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(255, 255, 255, .92);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .16s ease, background .16s ease, transform .16s ease, box-shadow .16s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .rpa-voto-botoes button:hover { background: rgba(255, 255, 255, .10); transform: translateY(-1px); }
+  .rpa-voto-botoes button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  .rpa-voto-botoes button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+  .rpa-voto-botoes svg { width: 18px; height: 18px; overflow: visible; }
+  .rpa-voto-botoes svg circle, .rpa-voto-botoes svg path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .rpa-voto-botoes button.rpa-activo[data-rpa-rating="dislike"] {
+    color: #ff4f4f; background: rgba(255, 79, 79, .13); box-shadow: 0 0 0 1px rgba(255, 79, 79, .25);
+  }
+  .rpa-voto-botoes button.rpa-activo[data-rpa-rating="neutral"] {
+    color: #ffd45a; background: rgba(255, 212, 90, .13); box-shadow: 0 0 0 1px rgba(255, 212, 90, .25);
+  }
+  .rpa-voto-botoes button.rpa-activo[data-rpa-rating="like"] {
+    color: #50e38b; background: rgba(80, 227, 139, .13); box-shadow: 0 0 0 1px rgba(80, 227, 139, .25);
+  }
+  .rpa-voto-status {
+    min-width: 0;
+    max-width: 130px;
+    font-size: 10px;
+    line-height: 1.05;
+    opacity: .82;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (max-width: 420px) {
+    .rpa-voto-titulo { font-size: 12px; }
+    .rpa-voto-botoes button { width: 28px; height: 26px; }
+    .rpa-voto-botoes svg { width: 17px; height: 17px; }
+    .rpa-voto-status { max-width: 92px; font-size: 9.5px; }
+  }
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  // Se o editor deixou cópias antigas, conserva apenas o bloco novo.
+  var candidates = Array.prototype.slice.call(
+    document.querySelectorAll('[data-rpa-vote-widget], [id="rpa-voto-musica"]')
+  );
+  var root = candidates.find(function (node) {
+    return node.getAttribute('data-rpa-vote-widget') === 'true';
+  }) || candidates[0];
+  if (!root) return;
+
+  candidates.forEach(function (node) {
+    if (node !== root && node !== document.body && node.parentNode) node.parentNode.removeChild(node);
+  });
+
+  if (window.__RPA_VOTING && typeof window.__RPA_VOTING.dispose === 'function') {
+    window.__RPA_VOTING.dispose();
+  }
+  if (root.getAttribute('data-rpa-vote-bound') === 'true') return;
+  root.setAttribute('data-rpa-vote-bound', 'true');
+
+  var API_NOW = 'https://radio.palavraantiga.org/api/nowplaying/palavraantiga';
+  var FEEDBACK_URL = 'https://script.google.com/macros/s/AKfycbxKDiasmRHKYfBagYJnW9hStGcrit4FPE644BcrG_Ven4Jtds-yEMxsGlxDndcXEwEM8w/exec';
+  var buttons = Array.prototype.slice.call(root.querySelectorAll('[data-rpa-rating]'));
+  var status = root.querySelector('[data-rpa-vote-status]') || root.querySelector('#rpa-voto-status');
+  var scores = { like: 1, neutral: 0, dislike: -1 };
+  var listeners = [];
+  var resetTimer = null;
+  var sending = false;
+  var latestName = '';
+  var latestAt = 0;
+  var currentKey = null;
+
+  function listen(target, type, handler) {
+    if (!target || !target.addEventListener) return;
+    target.addEventListener(type, handler);
+    listeners.push(function () { target.removeEventListener(type, handler); });
+  }
+
+  function clean(value) { return String(value || '').replace(/\s+/g, ' ').trim(); }
+  function hash(value) {
+    var result = 0;
+    value = clean(value).toLowerCase();
+    for (var i = 0; i < value.length; i++) result = ((result << 5) - result) + value.charCodeAt(i) | 0;
+    return Math.abs(result).toString(36);
+  }
+  function setStatus(value) { if (status) status.textContent = value || ''; }
+  function activate(rating) {
+    buttons.forEach(function (button) {
+      button.classList.toggle('rpa-activo', button.getAttribute('data-rpa-rating') === rating);
+    });
+  }
+  function clearVisual() {
+    buttons.forEach(function (button) { button.classList.remove('rpa-activo'); button.disabled = false; });
+    setStatus('');
+    if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
+  }
+  function resetLater() {
+    if (resetTimer) clearTimeout(resetTimer);
+    resetTimer = setTimeout(clearVisual, 60000);
+  }
+  function disable(value) { buttons.forEach(function (button) { button.disabled = value; }); }
+  function listenerId() {
+    var key = 'rpa_id_ouvinte_anonimo';
+    try {
+      var existing = localStorage.getItem(key);
+      if (existing) return existing;
+      var created = 'ouv_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+      localStorage.setItem(key, created);
+      return created;
+    } catch (_) { return 'ouv_sem_localstorage'; }
+  }
+  function device() {
+    var width = window.innerWidth || document.documentElement.clientWidth || 1200;
+    return width <= 767 ? 'mobile' : (width <= 1024 ? 'tablet' : 'desktop');
+  }
+  function brusselsDate() {
+    try {
+      var parts = new Intl.DateTimeFormat('en-CA', {timeZone: 'Europe/Brussels', year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts(new Date());
+      var get = function (type) { return parts.find(function (part) { return part.type === type; }).value; };
+      return get('year') + '-' + get('month') + '-' + get('day');
+    } catch (_) {
+      var date = new Date();
+      return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    }
+  }
+  function voteKey(name) { return 'rpa_voto_dia_' + brusselsDate() + '_' + hash(name); }
+  function getPrevious(name) { try { return localStorage.getItem(voteKey(name)); } catch (_) { return null; } }
+  function saveVote(name, rating) { try { localStorage.setItem(voteKey(name), rating); } catch (_) {} }
+
+  function updateCurrent(name) {
+    name = clean(name);
+    if (!name || name === 'Rádio Palavra Antiga') return;
+    var next = hash(name);
+    if (currentKey && next !== currentKey) clearVisual();
+    currentKey = next;
+  }
+
+  async function currentSong() {
+    if (latestName && Date.now() - latestAt < 20000) return latestName;
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, 8000);
+    try {
+      var response = await fetch(API_NOW + '?t=' + Date.now(), {cache: 'no-store', signal: controller.signal});
+      if (!response.ok) throw new Error('API indisponível');
+      var data = await response.json();
+      var song = ((data || {}).now_playing || {}).song || {};
+      var name = song.artist && song.title ? song.artist + ' - ' + song.title : (song.title || song.text || '');
+      return clean(name);
+    } catch (_) { return ''; }
+    finally { clearTimeout(timer); }
+  }
+
+  async function send(rating) {
+    if (sending || !Object.prototype.hasOwnProperty.call(scores, rating)) return;
+    if (!FEEDBACK_URL) { setStatus('Votação indisponível.'); resetLater(); return; }
+    sending = true;
+    disable(true);
+    setStatus('A enviar…');
+    try {
+      var name = await currentSong();
+      if (!name) { setStatus('Música desconhecida.'); resetLater(); return; }
+      updateCurrent(name);
+      var previous = getPrevious(name);
+      if (previous) { activate(previous); setStatus('Já votaste nesta hoje.'); resetLater(); return; }
+      await fetch(FEEDBACK_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: {'Content-Type': 'text/plain;charset=utf-8'},
+        body: JSON.stringify({
+          id_voto: new Date().toISOString() + '-' + Math.random().toString(36).slice(2, 8),
+          pontuacao: scores[rating], nome_ficheiro: name,
+          dispositivo: device(), id_ouvinte_anonimo: listenerId()
+        })
+      });
+      saveVote(name, rating);
+      activate(rating);
+      setStatus('Voto enviado.');
+      resetLater();
+    } catch (_) {
+      setStatus('Erro ao votar.');
+      resetLater();
+    } finally {
+      sending = false;
+      disable(false);
+    }
+  }
+
+  buttons.forEach(function (button) {
+    listen(button, 'click', function () { send(button.getAttribute('data-rpa-rating')); });
+  });
+  listen(document, 'rpa:live-metadata', function (event) {
+    var meta = event.detail || {};
+    var name = meta.artist && meta.title ? meta.artist + ' - ' + meta.title : meta.title;
+    latestName = clean(name);
+    latestAt = Date.now();
+    updateCurrent(latestName);
+  });
+
+  window.__RPA_VOTING = {
+    dispose: function () {
+      listeners.splice(0).forEach(function (remove) { remove(); });
+      if (resetTimer) clearTimeout(resetTimer);
+      if (root) root.removeAttribute('data-rpa-vote-bound');
+      delete window.__RPA_VOTING;
+    }
+  };
+})();
+</script>
