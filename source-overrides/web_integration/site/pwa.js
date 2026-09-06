@@ -4,7 +4,7 @@
   window.__RPA_PWA_V2 = true;
   const native = Boolean(window.RPA && typeof window.RPA.postMessage === 'function') ||
     /RadioPalavraAntiga\//.test(navigator.userAgent);
-  const standalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const standalone = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   const ios = () => /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   document.documentElement.classList.toggle('rpa-native-app', native);
@@ -14,6 +14,8 @@
   function meta(name, content) {
     let tag = document.querySelector('meta[name="' + name + '"]');
     if (!tag) { tag = document.createElement('meta'); tag.name = name; document.head.appendChild(tag); }
+    const target = document.head || document.documentElement;
+    if (target && !tag.parentNode) target.appendChild(tag);
     tag.content = content;
   }
   // Não duplicar viewport/manifest que o Odoo já fornece.
