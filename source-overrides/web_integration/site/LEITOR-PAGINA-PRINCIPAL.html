@@ -1,0 +1,842 @@
+<!-- Substitui o bloco HTML do novo leitor no editor da página principal. -->
+<div class="pa-web-player" id="paWebPlayer">
+  <div class="pa-player-art-wrap">
+    <div class="pa-player-art">
+      <img id="paPlayerCover" class="pa-player-cover" alt="Capa da música" loading="lazy"/>
+      <div class="pa-player-art-fallback" id="paPlayerFallback" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="pa-fallback-flame" viewBox="0 0 64 80">
+          <path d="M34 3
+               C35 16 48 19 47 33
+               C46 42 41 46 37 50
+               C40 39 32 34 30 27
+               C28 36 18 40 17 52
+               C16 65 25 75 32 77
+               C42 74 51 66 51 53
+               C51 40 43 31 40 24
+               C40 38 35 42 31 45
+               C34 32 24 25 34 3Z" fill="currentColor"></path>
+        </svg>
+      </div>
+      <div class="pa-playing-bars" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+  <div class="pa-player-content">
+    <div class="pa-player-top">
+      <div class="pa-player-live">
+        <span class="pa-live-dot"></span>
+        <span>EM DIRETO</span>
+      </div>
+      <div class="pa-player-station">
+        Rádio Palavra Antiga
+      </div>
+    </div>
+    <div class="pa-player-song" id="paPlayerSong" title="">
+      A carregar...
+    </div>
+    <div class="pa-player-artist" id="paPlayerArtist" title="">
+      Rádio Cristã Portuguesa
+    </div>
+    <div class="pa-player-controls">
+      <button class="pa-player-main-button" id="paPlayerButton" type="button" aria-label="Ouvir Rádio Palavra Antiga">
+        <svg class="pa-icon-play" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 5v14l11-7z"></path>
+        </svg>
+        <svg class="pa-icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 5h4v14H6zm8 0h4v14h-4z"></path>
+        </svg>
+        <span class="pa-loader"></span>
+      </button>
+      <div class="pa-volume-area">
+        <button class="pa-volume-button" id="paMuteButton" type="button" aria-label="Silenciar">
+          <svg class="pa-volume-on" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3
+                 a4.5 4.5 0 0 0-2.5-4.03v8.05
+                 A4.5 4.5 0 0 0 16.5 12zm0-8.5v2.06
+                 A7 7 0 0 1 20 12
+                 a7 7 0 0 1-3.5 6.06v2.06
+                 A9 9 0 0 0 22 12
+                 a9 9 0 0 0-5.5-8.5z"></path>
+          </svg>
+          <svg class="pa-volume-off" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M16.5 12
+                 A4.5 4.5 0 0 0 14 7.97v2.22
+                 l2.45 2.45c.03-.21.05-.42.05-.64z
+                 M19 12
+                 c0 .94-.2 1.82-.55 2.63
+                 l1.51 1.51A8.9 8.9 0 0 0 21 12
+                 a9 9 0 0 0-7-8.77v2.06
+                 A7 7 0 0 1 19 12z
+                 M4.27 3
+                 L3 4.27 7.73 9H3v6h4l5 5v-6.73
+                 l4.73 4.73A6.9 6.9 0 0 1 14 18.7
+                 v2.06a8.8 8.8 0 0 0 4.19-1.31
+                 L19.73 21 21 19.73 4.27 3z
+                 M12 4
+                 L9.91 6.09 12 8.18V4z"></path>
+          </svg>
+        </button>
+        <input type="range" id="paVolume" class="pa-volume-slider" min="0" max="1" value="0.85" step="0.01" aria-label="Volume"/>
+      </div>
+      <div class="pa-player-status" id="paPlayerStatus">
+        Toca para ouvir
+      </div>
+    </div>
+  </div>
+  <audio id="paWebAudio" preload="none" playsinline=""></audio>
+</div><style>
+/* =========================================================
+   BASE
+   ========================================================= */
+.pa-web-player {
+  --pa-red: #c91f2c;
+  --pa-red-dark: #99151f;
+  --pa-gold: #e4b65a;
+  --pa-text: #ffffff;
+  --pa-muted: #abb0b9;
+  position: relative;
+  width: calc(100% - 40px);
+  max-width: 1080px;
+  min-height: 190px;
+  margin: 22px auto;
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  overflow: hidden;
+  color: var(--pa-text);
+  background:
+    radial-gradient(
+      circle at 91% 12%,
+      rgba(190, 25, 38, .19),
+      transparent 37%
+    ),
+    radial-gradient(
+      circle at 80% 120%,
+      rgba(227, 178, 82, .08),
+      transparent 35%
+    ),
+    linear-gradient(
+      135deg,
+      #15181c 0%,
+      #0b0d10 64%,
+      #151013 100%
+    );
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 24px;
+  box-shadow:
+    0 18px 50px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  box-sizing: border-box;
+  isolation: isolate;
+}
+.pa-web-player *,
+.pa-web-player *::before,
+.pa-web-player *::after {
+  box-sizing: border-box;
+}
+/* decoração subtil */
+.pa-web-player::before {
+  content: "";
+  position: absolute;
+  width: 290px;
+  height: 290px;
+  right: -150px;
+  bottom: -210px;
+  border-radius: 50%;
+  background:
+    rgba(228,182,90,.07);
+  pointer-events: none;
+  z-index: -1;
+}
+/* =========================================================
+   CAPA
+   ========================================================= */
+.pa-player-art-wrap {
+  flex: 0 0 auto;
+}
+.pa-player-art {
+  position: relative;
+  width: 145px;
+  height: 145px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #191c21;
+  box-shadow:
+    0 10px 28px rgba(0,0,0,.38),
+    inset 0 0 0 1px rgba(255,255,255,.08);
+}
+/* imagem da capa */
+.pa-player-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.pa-player-cover.is-visible {
+  opacity: 1;
+}
+/* imagem alternativa */
+.pa-player-art-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd384;
+  background:
+    radial-gradient(
+      circle at 40% 25%,
+      #d92e3b,
+      transparent 48%
+    ),
+    linear-gradient(
+      145deg,
+      #c4212e,
+      #86131b
+    );
+}
+.pa-fallback-flame {
+  width: 50px;
+  height: 62px;
+  filter:
+    drop-shadow(
+      0 5px 7px rgba(0,0,0,.28)
+    );
+}
+/* =========================================================
+   BARRAS ANIMADAS
+   ========================================================= */
+.pa-playing-bars {
+  position: absolute;
+  z-index: 4;
+  left: 10px;
+  bottom: 10px;
+  height: 30px;
+  padding: 6px 8px;
+  display: none;
+  align-items: flex-end;
+  gap: 3px;
+  background: rgba(0,0,0,.68);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 9px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.pa-web-player.is-playing
+.pa-playing-bars {
+  display: flex;
+}
+.pa-playing-bars span {
+  width: 3px;
+  display: block;
+  min-height: 5px;
+  background: #fff;
+  border-radius: 4px;
+  animation:
+    paBars .72s
+    ease-in-out
+    infinite
+    alternate;
+}
+.pa-playing-bars span:nth-child(2) {
+  animation-delay: .16s;
+}
+.pa-playing-bars span:nth-child(3) {
+  animation-delay: .31s;
+}
+.pa-playing-bars span:nth-child(4) {
+  animation-delay: .09s;
+}
+@keyframes paBars {
+  from {
+    height: 5px;
+  }
+  to {
+    height: 19px;
+  }
+}
+/* =========================================================
+   CONTEÚDO
+   ========================================================= */
+.pa-player-content {
+  flex: 1;
+  min-width: 0;
+}
+/* cabeçalho */
+.pa-player-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 5px;
+}
+/* EM DIRETO */
+.pa-player-live {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #ff5963;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+.pa-live-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #ef3340;
+  box-shadow:
+    0 0 0 0
+    rgba(239,51,64,.55);
+  animation:
+    paLive 1.8s infinite;
+}
+@keyframes paLive {
+  0% {
+    box-shadow:
+      0 0 0 0
+      rgba(239,51,64,.55);
+  }
+  70% {
+    box-shadow:
+      0 0 0 8px
+      rgba(239,51,64,0);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0
+      rgba(239,51,64,0);
+  }
+}
+/* estação */
+.pa-player-station {
+  color: #b5bac2;
+  font-size: 12px;
+  font-weight: 600;
+}
+/* título */
+.pa-player-song {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+  font-size: clamp(
+    23px,
+    2.1vw,
+    30px
+  );
+  font-weight: 750;
+  line-height: 1.18;
+}
+/* artista */
+.pa-player-artist {
+  margin-top: 6px;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #b5bac2;
+  font-size: 14px;
+}
+/* =========================================================
+   CONTROLOS
+   ========================================================= */
+.pa-player-controls {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+/* botão principal */
+.pa-player-main-button {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background:
+    linear-gradient(
+      145deg,
+      #dc2d39,
+      #ad1822
+    );
+  box-shadow:
+    0 8px 22px
+    rgba(199,31,44,.32),
+    inset 0 1px 0
+    rgba(255,255,255,.24);
+  cursor: pointer;
+  -webkit-tap-highlight-color:
+    transparent;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease;
+}
+.pa-player-main-button:hover {
+  transform: scale(1.05);
+  box-shadow:
+    0 10px 28px
+    rgba(199,31,44,.42),
+    inset 0 1px 0
+    rgba(255,255,255,.24);
+}
+.pa-player-main-button:active {
+  transform: scale(.95);
+}
+.pa-player-main-button svg {
+  width: 29px;
+  height: 29px;
+  fill: currentColor;
+}
+.pa-icon-play {
+  margin-left: 3px;
+}
+.pa-icon-pause,
+.pa-loader {
+  display: none;
+}
+.pa-web-player.is-playing
+.pa-icon-play {
+  display: none;
+}
+.pa-web-player.is-playing
+.pa-icon-pause {
+  display: block;
+}
+.pa-web-player.is-loading
+.pa-icon-play,
+.pa-web-player.is-loading
+.pa-icon-pause {
+  display: none;
+}
+/* loader */
+.pa-loader {
+  width: 23px;
+  height: 23px;
+  border:
+    3px solid
+    rgba(255,255,255,.35);
+  border-top-color:
+    #fff;
+  border-radius: 50%;
+  animation:
+    paSpin .7s linear infinite;
+}
+.pa-web-player.is-loading
+.pa-loader {
+  display: block;
+}
+@keyframes paSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* =========================================================
+   VOLUME
+   ========================================================= */
+.pa-volume-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pa-volume-button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: #c8ccd2;
+  cursor: pointer;
+}
+.pa-volume-button:hover {
+  color: #fff;
+}
+.pa-volume-button svg {
+  width: 23px;
+  height: 23px;
+  fill: currentColor;
+}
+.pa-volume-off {
+  display: none;
+}
+.pa-volume-button.is-muted
+.pa-volume-on {
+  display: none;
+}
+.pa-volume-button.is-muted
+.pa-volume-off {
+  display: block;
+}
+.pa-volume-slider {
+  width: 125px;
+  height: 5px;
+  accent-color:
+    var(--pa-red);
+  cursor: pointer;
+}
+/* =========================================================
+   ESTADO
+   ========================================================= */
+.pa-player-status {
+  margin-left: auto;
+  color: #9298a2;
+  font-size: 12px;
+  white-space: nowrap;
+}
+/* =========================================================
+   TABLET
+   ========================================================= */
+@media (max-width: 900px) {
+  .pa-web-player {
+    width: calc(100% - 30px);
+    min-height: 165px;
+    padding: 20px;
+    gap: 20px;
+  }
+  .pa-player-art {
+    width: 120px;
+    height: 120px;
+  }
+  .pa-player-song {
+    font-size: 22px;
+  }
+  .pa-volume-slider {
+    width: 90px;
+  }
+}
+/* =========================================================
+   TELEMÓVEL / IPHONE
+   ========================================================= */
+@media (max-width: 600px) {
+  .pa-web-player {
+    width: calc(100% - 20px);
+    min-height: 0;
+    margin: 12px auto;
+    padding: 14px;
+    gap: 14px;
+    border-radius: 18px;
+  }
+  .pa-player-art {
+    width: 90px;
+    height: 90px;
+    border-radius: 15px;
+  }
+  .pa-player-top {
+    margin-bottom: 3px;
+  }
+  .pa-player-live {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .pa-player-station {
+    display: none;
+  }
+  .pa-player-song {
+    font-size: 17px;
+  }
+  .pa-player-artist {
+    margin-top: 3px;
+    font-size: 12px;
+  }
+  .pa-player-controls {
+    margin-top: 11px;
+    gap: 7px;
+  }
+  .pa-player-main-button {
+    width: 44px;
+    height: 44px;
+  }
+  .pa-player-main-button svg {
+    width: 24px;
+    height: 24px;
+  }
+  /*
+    No iPhone o volume é controlado
+    pelo sistema / botões físicos.
+  */
+  .pa-volume-slider {
+    display: none;
+  }
+  .pa-player-status {
+    display: none;
+  }
+}
+/* =========================================================
+   IPHONES PEQUENOS
+   ========================================================= */
+@media (max-width: 390px) {
+  .pa-web-player {
+    padding: 11px;
+    gap: 11px;
+  }
+  .pa-player-art {
+    width: 78px;
+    height: 78px;
+  }
+  .pa-player-main-button {
+    width: 42px;
+    height: 42px;
+  }
+}
+/* =========================================================
+   ACESSIBILIDADE
+   ========================================================= */
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .pa-live-dot,
+  .pa-playing-bars span,
+  .pa-loader {
+    animation-duration: 2s;
+  }
+}
+</style>
+<script>
+/* Leitor web/PWA. Nunca controla o áudio nativo Android. */
+(function () {
+  'use strict';
+  if (window.RPA && typeof window.RPA.postMessage === 'function') return;
+  if (/RadioPalavraAntiga\//.test(navigator.userAgent)) return;
+  if (window.__PA_WEB_PLAYER) return;
+  const root = document.getElementById('paWebPlayer');
+  if (!root) return;
+  const el = id => root.querySelector('#' + id);
+  const audio = el('paWebAudio'), button = el('paPlayerButton');
+  if (!audio || !button) return;
+  const titleEl = el('paPlayerSong'), artistEl = el('paPlayerArtist');
+  const statusEl = el('paPlayerStatus'), cover = el('paPlayerCover');
+  const fallback = el('paPlayerFallback'), volume = el('paVolume');
+  const mute = el('paMuteButton');
+  const BASE = 'https://radio.palavraantiga.org';
+  const STREAM = BASE + '/listen/palavraantiga/radio.mp3';
+  const LOGO = 'https://palavraantiga.org/web/image/website/1/logo/512x512';
+  const listeners = [];
+  let disposed = false, wanted = false, generation = 0, connectingTimer;
+  let pollTimer, request = null, suspended = false, currentArt = '';
+  let title = 'Rádio Palavra Antiga', artist = 'Rádio Cristã Portuguesa';
+  function on(target, event, handler) {
+    if (!target) return;
+    target.addEventListener(event, handler);
+    listeners.push(() => target.removeEventListener(event, handler));
+  }
+  function state(value, message) {
+    root.classList.toggle('is-playing', value === 'playing');
+    root.classList.toggle('is-loading', value === 'loading');
+    statusEl.textContent = message;
+    button.setAttribute('aria-label', wanted ? 'Parar Rádio Palavra Antiga' : 'Ouvir Rádio Palavra Antiga');
+    button.setAttribute('aria-pressed', String(wanted));
+    try {
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState =
+        value === 'playing' ? 'playing' : (wanted ? 'none' : 'paused');
+    } catch (_) {}
+  }
+  function metadata() {
+    if (!wanted || !('mediaSession' in navigator) || !window.MediaMetadata) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title, artist, album: 'Rádio Palavra Antiga',
+        artwork: [{src: currentArt || LOGO}]
+      });
+    } catch (_) {}
+  }
+  function stop(message = 'Toca para ouvir') {
+    wanted = false;
+    generation++;
+    clearTimeout(connectingTimer);
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+    state('stopped', message);
+  }
+  function start() {
+    if (disposed || wanted) return;
+    const attempt = ++generation;
+    wanted = true;
+    state('loading', 'A ligar…');
+    metadata();
+    audio.src = STREAM + '?_pa=' + Date.now();
+    clearTimeout(connectingTimer);
+    connectingTimer = setTimeout(() => {
+      if (wanted && attempt === generation) stop('A ligação demorou demasiado. Toca para tentar novamente.');
+    }, 30000);
+    // Chamada síncrona no gesto do utilizador: necessária no iPhone.
+    try {
+      const pending = audio.play();
+      if (pending && pending.catch) pending.catch(() => {
+        if (!disposed && attempt === generation) stop('Não foi possível iniciar. Toca para tentar novamente.');
+      });
+    } catch (_) { if (attempt === generation) stop('Toca novamente para ouvir'); }
+  }
+  on(button, 'click', () => wanted ? stop() : start());
+  on(audio, 'playing', () => {
+    if (!wanted || disposed) { audio.pause(); return; }
+    clearTimeout(connectingTimer);
+    state('playing', 'A ouvir em direto');
+    metadata();
+  });
+  on(audio, 'waiting', () => {
+    if (!wanted) return;
+    state('loading', 'A recuperar ligação…');
+    clearTimeout(connectingTimer);
+    connectingTimer = setTimeout(() => {
+      if (wanted) stop('A ligação foi interrompida. Toca para voltar a ouvir.');
+    }, 30000);
+  });
+  on(audio, 'error', () => { if (wanted) stop('Não foi possível ligar. Toca para tentar novamente.'); });
+  on(audio, 'ended', () => { if (wanted) stop('A emissão foi interrompida. Toca para voltar a ouvir.'); });
+  on(audio, 'pause', () => {
+    // Uma chamada ou pausa do sistema não deve ser contrariada por autoplay.
+    if (wanted && audio.paused) stop('Em pausa. Toca para voltar a ouvir.');
+  });
+  function volumeState() {
+    root.classList.toggle('is-muted', audio.muted || audio.volume === 0);
+    if (mute) {
+      mute.classList.toggle('is-muted', audio.muted || audio.volume === 0);
+      mute.setAttribute('aria-pressed', String(audio.muted));
+      mute.setAttribute('aria-label', audio.muted ? 'Ativar som' : 'Silenciar');
+    }
+  }
+  on(volume, 'input', () => {
+    const v = Number(volume.value);
+    if (Number.isFinite(v)) { audio.volume = Math.max(0, Math.min(1, v)); audio.muted = false; }
+    volumeState();
+  });
+  on(mute, 'click', () => { audio.muted = !audio.muted; volumeState(); });
+  on(audio, 'volumechange', volumeState);
+  // iOS gere o volume no dispositivo; não mostrar um slider inoperante.
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (volume && ios) volume.hidden = true;
+  if (volume && !ios) audio.volume = Number(volume.value) || 0.85;
+  volumeState();
+  function safeArt(value) {
+    if (typeof value !== 'string' || !value.trim()) return '';
+    try {
+      const url = new URL(value.replace(/&amp;/g, '&'), BASE + '/');
+      return url.protocol === 'https:' ? url.href : '';
+    } catch (_) { return ''; }
+  }
+  function showArt(url) {
+    if (!cover) return;
+    if (cover.getAttribute('src') !== url) {
+      cover.setAttribute('src', url);
+      cover.alt = 'Capa: ' + title;
+    }
+    if (url !== currentArt) { currentArt = url; metadata(); }
+  }
+  on(cover, 'load', () => {
+    cover.style.opacity = '1';
+    if (fallback) fallback.style.display = 'none';
+  });
+  on(cover, 'error', () => {
+    if (cover.getAttribute('src') !== LOGO) { showArt(LOGO); return; }
+    cover.style.opacity = '0';
+    if (fallback) fallback.style.display = '';
+  });
+  function text(value, otherwise) {
+    return typeof value === 'string' && value.trim() ? value.trim() : otherwise;
+  }
+  function schedule() {
+    clearTimeout(pollTimer);
+    if (!disposed && !suspended && !document.hidden) pollTimer = setTimeout(poll, 15000);
+  }
+  async function poll() {
+    clearTimeout(pollTimer);
+    if (disposed || suspended || request || document.hidden) return;
+    const controller = new AbortController();
+    request = controller;
+    const deadline = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(BASE + '/api/nowplaying/palavraantiga', {
+        cache: 'no-store', credentials: 'omit', headers: {Accept: 'application/json'}, signal: controller.signal
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      if (disposed || controller.signal.aborted) return;
+      const now = data.now_playing || {}, song = now.song || {};
+      title = text(song.title, text(song.text, 'Rádio Palavra Antiga'));
+      artist = text(song.artist, 'Rádio Cristã Portuguesa');
+      titleEl.textContent = title; titleEl.title = title;
+      artistEl.textContent = artist; artistEl.title = artist;
+      document.dispatchEvent(new CustomEvent('rpa:live-metadata', {detail: {title, artist}}));
+      // Avalia a capa em cada resposta, mesmo sem mudança de música.
+      const art = [song.art, song.art_url, now.art, now.art_url, data.station?.art]
+        .map(safeArt).find(Boolean) || LOGO;
+      showArt(art);
+      metadata();
+    } catch (_) {
+      if (!disposed && titleEl.textContent.includes('carregar')) {
+        titleEl.textContent = title; artistEl.textContent = artist;
+      }
+    } finally {
+      clearTimeout(deadline);
+      if (request === controller) request = null;
+      schedule();
+    }
+  }
+  const actions = {play: start, pause: () => stop(), stop: () => stop()};
+  if ('mediaSession' in navigator) Object.entries(actions).forEach(([action, handler]) => {
+    try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) {}
+  });
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    listeners.splice(0).forEach(remove => remove());
+    clearTimeout(pollTimer);
+    if (request) request.abort();
+    stop();
+    if ('mediaSession' in navigator) Object.keys(actions).forEach(action => {
+      try { navigator.mediaSession.setActionHandler(action, null); } catch (_) {}
+    });
+    delete window.__PA_WEB_PLAYER;
+  }
+  window.__PA_WEB_PLAYER = {dispose};
+  on(document, 'visibilitychange', () => {
+    if (document.hidden) { clearTimeout(pollTimer); if (request) request.abort(); }
+    else poll();
+    // Esconder a página não pára a emissão.
+  });
+  on(window, 'pagehide', event => {
+    suspended = true;
+    clearTimeout(pollTimer);
+    if (request) request.abort();
+    if (!event.persisted) dispose();
+  });
+  on(window, 'pageshow', () => { suspended = false; poll(); });
+  state('stopped', 'Toca para ouvir');
+  showArt(LOGO);
+  poll();
+})();
+
+</script>

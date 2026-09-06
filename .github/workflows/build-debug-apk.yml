@@ -1,10 +1,11 @@
-name: Build Radio Palavra Antiga 1.0.11 APK
+name: Build Radio Palavra Antiga 1.0.12 APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, fix/rpa-web-pwa-1.0.12]
     paths:
+      - 'source-overrides/**'
       - 'ci/rpa106-nav-source.tar.xz.b64'
       - 'build-assets/debug-icon.png.b64'
       - '.github/workflows/build-debug-apk.yml'
@@ -28,7 +29,8 @@ jobs:
           echo 'c8ccc9e104700e79229f58c125c475dc86f4e902d36a7752dd9d625543706acc  /tmp/rpa111-source.tar.xz' | sha256sum -c -
           mkdir -p app
           tar -xJf /tmp/rpa111-source.tar.xz -C app
-          grep -q '^version: 1.0.11+12$' app/pubspec.yaml
+          cp -a source-overrides/. app/
+          grep -q '^version: 1.0.12+13$' app/pubspec.yaml
           grep -q "label: 'Rádio'" app/lib/radio_webview.dart
           grep -q "label: 'Música'" app/lib/radio_webview.dart
           grep -q "label: 'WhatsApp'" app/lib/radio_webview.dart
@@ -234,7 +236,7 @@ jobs:
 
       - name: Run WebView bridge JavaScript tests
         working-directory: app
-        run: node --test test/rpa_bridge_dom_test.js
+        run: node --test test/rpa_bridge_dom_test.js test/web_player_test.js
 
       - name: Build debug APK
         working-directory: app
@@ -246,20 +248,20 @@ jobs:
           set -euo pipefail
           APK='app/build/app/outputs/flutter-apk/app-debug.apk'
           test -s "${APK}"
-          cp "${APK}" Radio-Palavra-Antiga-1.0.11-teste.apk
-          unzip -t Radio-Palavra-Antiga-1.0.11-teste.apk >/dev/null
+          cp "${APK}" Radio-Palavra-Antiga-1.0.12-teste.apk
+          unzip -t Radio-Palavra-Antiga-1.0.12-teste.apk >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
-          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.11-teste.apk | tee APK-INFO.txt
-          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='12' versionName='1.0.11-debug'" APK-INFO.txt
-          sha256sum Radio-Palavra-Antiga-1.0.11-teste.apk | tee SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.11-teste.apk
+          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.12-teste.apk | tee APK-INFO.txt
+          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='13' versionName='1.0.12-debug'" APK-INFO.txt
+          sha256sum Radio-Palavra-Antiga-1.0.12-teste.apk | tee SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.12-teste.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.11-teste
+          name: Radio-Palavra-Antiga-1.0.12-teste
           path: |
-            Radio-Palavra-Antiga-1.0.11-teste.apk
+            Radio-Palavra-Antiga-1.0.12-teste.apk
             SHA256.txt
             APK-INFO.txt
           if-no-files-found: error
@@ -302,17 +304,17 @@ jobs:
           unzip -t "${AAB}" >/dev/null
           keytool -printcert -jarfile "${AAB}" | tee AAB-CERTIFICATE.txt
           grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57' AAB-CERTIFICATE.txt
-          cp "${AAB}" Radio-Palavra-Antiga-1.0.11-Play.aab
-          sha256sum Radio-Palavra-Antiga-1.0.11-Play.aab | tee AAB-SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.11-Play.aab
+          cp "${AAB}" Radio-Palavra-Antiga-1.0.12-Play.aab
+          sha256sum Radio-Palavra-Antiga-1.0.12-Play.aab | tee AAB-SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.12-Play.aab
 
       - name: Upload signed Play AAB
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.11-Play-AAB
+          name: Radio-Palavra-Antiga-1.0.12-Play-AAB
           path: |
-            Radio-Palavra-Antiga-1.0.11-Play.aab
+            Radio-Palavra-Antiga-1.0.12-Play.aab
             AAB-SHA256.txt
             AAB-CERTIFICATE.txt
           if-no-files-found: error

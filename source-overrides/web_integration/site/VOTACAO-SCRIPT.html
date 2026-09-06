@@ -1,0 +1,311 @@
+<!-- Substitui apenas o script do bloco de votação em /app1. Mantém o HTML e CSS desse bloco. -->
+<script>
+
+/* ================================================================
+   RPA - ENVIO DOS VOTOS PARA GOOGLE SHEETS
+   ================================================================ */
+
+(function () {
+  const API_NOW = "https://radio.palavraantiga.org/api/nowplaying/palavraantiga";
+
+  /*
+    https://script.google.com/macros/s/AKfycbxKDiasmRHKYfBagYJnW9hStGcrit4FPE644BcrG_Ven4Jtds-yEMxsGlxDndcXEwEM8w/exec
+  */
+  const FEEDBACK_URL = "https://script.google.com/macros/s/AKfycbxKDiasmRHKYfBagYJnW9hStGcrit4FPE644BcrG_Ven4Jtds-yEMxsGlxDndcXEwEM8w/exec";
+
+  const root = document.getElementById("rpa-voto-musica");
+  if (!root || root.dataset.rpaVoteBound === 'true') return;
+  root.dataset.rpaVoteBound = 'true';
+  let sending = false;
+  let latestName = '', latestAt = 0;
+  document.addEventListener('rpa:live-metadata', event => {
+    const meta = event.detail || {};
+    if (!meta.title || meta.title === 'Rádio Palavra Antiga') return;
+    latestName = meta.artist ? meta.artist + ' - ' + meta.title : meta.title;
+    latestAt = Date.now();
+    if (!sending) verificarMudancaDeMusica();
+  });
+
+  const botoes = root.querySelectorAll("[data-rpa-rating]");
+  const statusEl = document.getElementById("rpa-voto-status");
+
+  const pontuacoes = {
+    like: 1,
+    neutral: 0,
+    dislike: -1
+  };
+
+  let temporizadorReset = null;
+  let ultimaMusicaKey = null;
+
+  function escreverEstado(texto) {
+    if (statusEl) {
+      statusEl.textContent = texto || "";
+    }
+  }
+
+  function activarBotao(rating) {
+    botoes.forEach(function (botao) {
+      botao.classList.toggle(
+        "rpa-activo",
+        botao.getAttribute("data-rpa-rating") === rating
+      );
+    });
+  }
+
+  function limparEstadoVisual() {
+    botoes.forEach(function (botao) {
+      botao.classList.remove("rpa-activo");
+      botao.disabled = false;
+    });
+
+    escreverEstado("");
+
+    if (temporizadorReset) {
+      clearTimeout(temporizadorReset);
+      temporizadorReset = null;
+    }
+  }
+
+  function agendarResetVisual() {
+    if (temporizadorReset) {
+      clearTimeout(temporizadorReset);
+    }
+
+    temporizadorReset = setTimeout(function () {
+      limparEstadoVisual();
+    }, 60000);
+  }
+
+  function bloquearBotoes(bloquear) {
+    botoes.forEach(function (botao) {
+      botao.disabled = bloquear;
+    });
+  }
+
+  function limparTexto(valor) {
+    return String(valor || "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function criarIdVotoLocal() {
+    const agora = new Date();
+    const base = agora.toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+    const aleatorio = Math.random().toString(36).substring(2, 8);
+    return base + "-" + aleatorio;
+  }
+
+  function getIdOuvinteAnonimo() {
+    const chave = "rpa_id_ouvinte_anonimo";
+
+    try {
+      const existente = localStorage.getItem(chave);
+      if (existente) return existente;
+
+      const novo = "ouv_" +
+        Math.random().toString(36).substring(2, 12) +
+        Date.now().toString(36);
+
+      localStorage.setItem(chave, novo);
+      return novo;
+    } catch (e) {
+      return "ouv_sem_localstorage";
+    }
+  }
+
+  function detectarDispositivo() {
+    const largura = window.innerWidth || document.documentElement.clientWidth || 1200;
+
+    if (largura <= 767) return "mobile";
+    if (largura <= 1024) return "tablet";
+
+    return "desktop";
+  }
+
+  function getDataBruxelas() {
+    try {
+      const partes = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Brussels",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(new Date());
+
+      const ano = partes.find(p => p.type === "year").value;
+      const mes = partes.find(p => p.type === "month").value;
+      const dia = partes.find(p => p.type === "day").value;
+
+      return ano + "-" + mes + "-" + dia;
+    } catch (e) {
+      const d = new Date();
+      return d.getFullYear() + "-" +
+        String(d.getMonth() + 1).padStart(2, "0") + "-" +
+        String(d.getDate()).padStart(2, "0");
+    }
+  }
+
+  function hashSimples(texto) {
+    texto = String(texto || "").toLowerCase();
+
+    let hash = 0;
+
+    for (let i = 0; i < texto.length; i++) {
+      hash = ((hash << 5) - hash) + texto.charCodeAt(i);
+      hash |= 0;
+    }
+
+    return Math.abs(hash).toString(36);
+  }
+
+  function chaveVotoDiario(nomeFicheiro) {
+    const data = getDataBruxelas();
+    const musica = hashSimples(nomeFicheiro);
+
+    return "rpa_voto_dia_" + data + "_" + musica;
+  }
+
+  function votoDeHojeNestaMusica(nomeFicheiro) {
+    try {
+      return localStorage.getItem(chaveVotoDiario(nomeFicheiro));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function guardarVotoDeHoje(nomeFicheiro, rating) {
+    try {
+      localStorage.setItem(chaveVotoDiario(nomeFicheiro), rating);
+    } catch (e) {}
+  }
+
+  async function obterNomeFicheiroAzuraCast() {
+    if (latestName && Date.now() - latestAt < 20000) return limparTexto(latestName);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const resposta = await fetch(API_NOW + "?t=" + Date.now(), {
+        cache: "no-store", signal: controller.signal
+      });
+
+      if (!resposta.ok) throw new Error("API indisponível");
+      const data = await resposta.json();
+      const song = (data.now_playing || {}).song || {};
+
+      if (song.text) {
+        return limparTexto(song.text);
+      }
+
+      if (song.artist && song.title) {
+        return limparTexto(song.artist + " - " + song.title);
+      }
+
+      if (song.title) {
+        return limparTexto(song.title);
+      }
+
+      return "Desconhecido";
+    } catch (e) {
+      return "Desconhecido";
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function verificarMudancaDeMusica() {
+    try {
+      const nomeFicheiro = await obterNomeFicheiroAzuraCast();
+
+      if (!nomeFicheiro || nomeFicheiro === "Desconhecido") {
+        return;
+      }
+
+      const novaKey = hashSimples(nomeFicheiro);
+
+      if (!ultimaMusicaKey) {
+        ultimaMusicaKey = novaKey;
+        return;
+      }
+
+      if (novaKey !== ultimaMusicaKey) {
+        ultimaMusicaKey = novaKey;
+        limparEstadoVisual();
+      }
+    } catch (e) {}
+  }
+
+  async function enviarVoto(rating) {
+    if (sending || !Object.prototype.hasOwnProperty.call(pontuacoes, rating)) return;
+    if (!FEEDBACK_URL || FEEDBACK_URL === "AKfycbxKDiasmRHKYfBagYJnW9hStGcrit4FPE644BcrG_Ven4Jtds-yEMxsGlxDndcXEwEM8w") {
+      escreverEstado("Falta o link.");
+      agendarResetVisual();
+      return;
+    }
+
+    sending = true;
+    bloquearBotoes(true);
+    escreverEstado("A enviar...");
+
+    try {
+      const nomeFicheiro = await obterNomeFicheiroAzuraCast();
+
+      if (!nomeFicheiro || nomeFicheiro === "Desconhecido") {
+        escreverEstado("Música desconhecida.");
+        agendarResetVisual();
+        return;
+      }
+
+      ultimaMusicaKey = hashSimples(nomeFicheiro);
+
+      const votoAnterior = votoDeHojeNestaMusica(nomeFicheiro);
+
+      if (votoAnterior) {
+        activarBotao(votoAnterior);
+        escreverEstado("Já votaste nesta hoje.");
+        agendarResetVisual();
+        return;
+      }
+
+      const payload = {
+        id_voto: criarIdVotoLocal(),
+        pontuacao: pontuacoes[rating],
+        nome_ficheiro: nomeFicheiro,
+        dispositivo: detectarDispositivo(),
+        id_ouvinte_anonimo: getIdOuvinteAnonimo()
+      };
+
+      await fetch(FEEDBACK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      guardarVotoDeHoje(nomeFicheiro, rating);
+      activarBotao(rating);
+      escreverEstado("Voto enviado."); // no-cors não permite confirmar o registo no servidor.
+
+      agendarResetVisual();
+
+    } catch (e) {
+      escreverEstado("Erro ao votar.");
+      agendarResetVisual();
+    } finally {
+      sending = false;
+      bloquearBotoes(false);
+    }
+  }
+
+  botoes.forEach(function (botao) {
+    botao.addEventListener("click", function () {
+      const rating = botao.getAttribute("data-rpa-rating");
+      enviarVoto(rating);
+    });
+  });
+
+  // Sem polling próprio: recebe a atualização do leitor e consulta a API apenas ao votar, se necessário.
+})();
+
+</script>

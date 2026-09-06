@@ -1,0 +1,218 @@
+<!-- Substitui integralmente o BODY personalizado anterior. -->
+<a
+  href="https://wa.me/351800500321?text=Ol%C3%A1%20R%C3%A1dio%20Palavra%20Antiga%21"
+  class="whatsapp-palavra-antiga"
+  target="_blank"
+  rel="noopener noreferrer"
+  aria-label="Contactar a Rádio Palavra Antiga pelo WhatsApp"
+  title="Fala connosco no WhatsApp"
+>
+
+  <svg
+    class="radio-whatsapp-logo"
+    viewBox="0 0 80 80"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    focusable="false"
+  >
+
+    <!-- CHAMA -->
+    <path
+      class="logo-flame"
+      d="
+        M40 3
+        C43 9 49 11 47 18
+        C46 22 43 24 40 25
+        C35 24 32 21 32 17
+        C32 13 35 10 38 7
+        C38 10 40 12 41 13
+        C42 10 41 6 40 3 Z
+      "
+    />
+
+    <!-- ONDAS ESQUERDA -->
+    <path
+      class="radio-wave"
+      d="M17 28 C11 33 11 43 17 48"
+    />
+
+    <path
+      class="radio-wave outer-wave"
+      d="M11 23 C2 31 2 45 11 53"
+    />
+
+    <!-- ONDAS DIREITA -->
+    <path
+      class="radio-wave"
+      d="M63 28 C69 33 69 43 63 48"
+    />
+
+    <path
+      class="radio-wave outer-wave"
+      d="M69 23 C78 31 78 45 69 53"
+    />
+
+    <!-- MICROFONE -->
+    <rect
+      x="27"
+      y="18"
+      width="26"
+      height="34"
+      rx="13"
+      class="microphone-body"
+    />
+
+    <!-- OLHOS -->
+    <circle
+      cx="34"
+      cy="33"
+      r="2.2"
+      class="microphone-face"
+    />
+
+    <circle
+      cx="46"
+      cy="33"
+      r="2.2"
+      class="microphone-face"
+    />
+
+    <!-- SORRISO -->
+    <path
+      d="M34 40 C37 44 43 44 46 40"
+      class="microphone-smile"
+    />
+
+    <!-- SUPORTE -->
+    <path
+      d="
+        M21 40
+        C21 52 29 59 40 59
+        C51 59 59 52 59 40
+      "
+      class="microphone-support"
+    />
+
+    <!-- HASTE -->
+    <line
+      x1="40"
+      y1="59"
+      x2="40"
+      y2="67"
+      class="microphone-support"
+    />
+
+    <!-- BASE -->
+    <line
+      x1="31"
+      y1="69"
+      x2="49"
+      y2="69"
+      class="microphone-support"
+    />
+
+  </svg>
+
+</a>
+<template id="rpaNativePlayerTemplate">
+<div id="rpaPlayerRoot" style="width:100%;max-width:700px;margin:auto;">
+  <div class="np-player-box">
+
+    <span class="np-player-btn-wrap">
+      <button
+        id="playBtn"
+        class="np-player-btn"
+        type="button"
+        title="Tocar rádio">
+
+        <img
+          id="btnImg"
+          src="https://palavraantiga.org/web/image/1441-ef27f5e6/bot%C3%A3o%20play%20da%20r%C3%A1dio%20%281%29.webp"
+          alt="Ouvir Rádio">
+
+      </button>
+    </span>
+
+
+    <div class="vinyl-wrap">
+
+      <div class="vinyl-scene">
+
+        <div class="vinyl-ring"></div>
+
+
+        <div
+          class="vinyl-disc"
+          id="vinylDisc">
+
+          <div class="vinyl-label">
+            <img
+              id="np-capa"
+              src="https://palavraantiga.org/web/image/website/1/logo/512x512"
+              alt="Capa do álbum">
+          </div>
+
+          <div class="vinyl-hole"></div>
+
+          <div
+            class="vinyl-shadow"
+            id="needleShadow">
+          </div>
+
+        </div>
+
+
+        <div
+          class="tonearm"
+          id="tonearm">
+
+          <div class="tonearm-inner">
+            <div class="tonearm-base"></div>
+            <div class="tonearm-arm"></div>
+            <div class="tonearm-head"></div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div id="np-titulo">A carregar…</div>
+
+  </div>
+
+
+  <div
+    class="np-letra-box"
+    id="np-letra-box"
+    hidden>
+
+    <strong>Letra</strong>
+    <div id="np-letra"></div>
+
+  </div>
+
+
+
+
+</div>
+
+
+
+
+
+</template>
+<script>
+(function () {
+  'use strict';
+  // O vinil pertence apenas à app Android. O PWA usa o leitor da página principal.
+  const native = Boolean(window.RPA && typeof window.RPA.postMessage === 'function') ||
+    /RadioPalavraAntiga\//.test(navigator.userAgent);
+  if (!native || location.pathname.replace(/\/$/, '') !== '/app1') return;
+  if (document.getElementById('rpaPlayerRoot')) return;
+  const template = document.getElementById('rpaNativePlayerTemplate');
+  if (template) template.parentNode.insertBefore(template.content.cloneNode(true), template);
+})();
+</script>
