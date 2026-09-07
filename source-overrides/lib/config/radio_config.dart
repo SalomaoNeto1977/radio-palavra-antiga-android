@@ -65,7 +65,7 @@ abstract final class RadioConfig {
 
   static const String javascriptChannel = 'RPA';
   static const String userAgent =
-      'RadioPalavraAntiga/1.0.12 (Android; Flutter WebView)';
+      'RadioPalavraAntiga/1.0.13 (Android; Flutter WebView)';
   static const String notificationChannelId = 'org.palavraantiga.radio.audio';
   static const String notificationChannelName =
       'Reprodução da Rádio Palavra Antiga';
