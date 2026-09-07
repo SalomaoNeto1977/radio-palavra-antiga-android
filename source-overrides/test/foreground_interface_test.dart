@@ -44,7 +44,7 @@ void main() {
         home: ForegroundInterface(
           builder: (_) {
             constructions += 1;
-            return const TextField();
+            return const Material(child: TextField());
           },
         ),
       ),
