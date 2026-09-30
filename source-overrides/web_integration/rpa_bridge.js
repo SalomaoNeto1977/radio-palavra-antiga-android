@@ -447,6 +447,17 @@
       catch (_) { return ""; }
     }
 
+    function albumCoverUrl(value) {
+      return typeof value === "string" && /^https:\/\/raw\.githubusercontent\.com\/SalomaoNeto1977\/radio-palavra-antiga-android\/main\/catalog\/covers\/[a-f0-9]{64}\.jpg$/.test(value) ? value : "";
+    }
+
+    function trackAlbumCover(id, fallback) {
+      var playlist = officialPlaylists.find(function (item) {
+        return item.coverUrl && item.trackIds.includes(id);
+      });
+      return playlist ? playlist.coverUrl : fallback;
+    }
+
     function artUrl(value) {
       var candidate = "";
       if (typeof value === "string") candidate = value;
@@ -460,9 +471,15 @@
           "palavraantiga.org",
           "www.palavraantiga.org"
         ];
-        return parsed.protocol === "https:" && allowed.includes(parsed.hostname)
+        return albumCoverUrl(candidate) || parsed.protocol === "https:" && allowed.includes(parsed.hostname)
           ? parsed.href : DEFAULT_ARTWORK;
       } catch (_) { return DEFAULT_ARTWORK; }
+    }
+
+    function publicAlbumTitle(value) {
+      var title = String(value || "").trim();
+      var match = /^CD\s*(?:[-–—]\s*)?\([^)]*\)\s+(.+)$/i.exec(title);
+      return match ? match[1].trim() : title;
     }
 
     function normalizeOfficialPlaylists(payload) {
@@ -473,7 +490,7 @@
       return rows.map(function (row, index) {
         if (!row || typeof row !== "object") return null;
         var id = String(row.id == null ? "playlist-" + index : row.id).trim();
-        var name = String(row.name || "").trim();
+        var name = publicAlbumTitle(row.name);
         if (!id || !name || usedIds.has(id) || !Array.isArray(row.track_ids)) {
           return null;
         }
@@ -493,6 +510,7 @@
           name: name,
           description: String(row.description || "").trim(),
           trackIds: trackIds,
+          coverUrl: albumCoverUrl(row.cover_url),
           isFallback: row.is_fallback === true
         };
       }).filter(Boolean);
@@ -514,8 +532,9 @@
         url: url,
         title: String(media.title || media.text || "Sem título").trim() || "Sem título",
         artist: String(media.artist || "Rádio Palavra Antiga").trim() || "Rádio Palavra Antiga",
-        album: String(media.album || "").trim(),
-        artwork: artUrl(media.art)
+        album: publicAlbumTitle(media.album),
+        originalArtwork: artUrl(media.art),
+        artwork: trackAlbumCover(id, artUrl(media.art))
       };
     }
 
@@ -578,7 +597,6 @@
       "<div class='rpa-music-search'><span>⌕</span><input id='rpa-music-search' type='search' aria-label='Pesquisar playlist, música ou artista' placeholder='Pesquisar no catálogo'></div>",
       "<nav class='rpa-music-tabs'>",
       "<button type='button' data-view='official' class='active'>Playlists da rádio</button>",
-      "<button type='button' data-view='all'>Todas</button>",
       "<button type='button' data-view='favorites'>♥ Favoritos</button>",
       "<button type='button' data-view='personal'>As tuas playlists</button>",
       "</nav>",
@@ -665,6 +683,7 @@
     window.__RPA_SHOW_RADIO = function () { closeMusic(false); };
     window.__RPA_UPDATE_OFFICIAL_PLAYLISTS = function (payload) {
       officialPlaylists = normalizeOfficialPlaylists(payload);
+      catalog.forEach(function (track) { track.artwork = trackAlbumCover(track.id, track.originalArtwork || DEFAULT_ARTWORK); });
       if (panel.classList.contains("open")) renderTracks();
     };
     window.__RPA_SET_MUSIC_ACCESS = function (access) {
@@ -730,10 +749,6 @@
     }
 
     function renderPlaylistBar() {
-      if (activeView.indexOf("official:") === 0) {
-        playlistBar.innerHTML = "<button type='button' data-official-home='1'>‹ Todas as playlists</button>";
-        return;
-      }
       var names = personalPlaylistNames();
       if (activeView !== "personal" && activeView.indexOf("personal:") !== 0) {
         playlistBar.innerHTML = "";
@@ -772,12 +787,12 @@
       if (!playlists.length) {
         trackList.innerHTML = availablePlaylists.length
           ? "<div class='rpa-music-empty'>Não encontrei playlists ou músicas.</div>"
-          : "<div class='rpa-music-empty'><b>As playlists da rádio não estão disponíveis nesta versão.</b><br>Podes continuar a ouvir em Todas.</div>";
+          : "<div class='rpa-music-empty'><b>As playlists da rádio não estão disponíveis nesta versão.</b><br>Volta a abrir a área Música daqui a pouco.</div>";
         return;
       }
       trackList.innerHTML = "<section class='rpa-official-grid'>" + playlists.map(function (playlist) {
         var tracks = tracksForOfficialPlaylist(playlist);
-        var cover = tracks.length ? tracks[0].artwork : DEFAULT_ARTWORK;
+        var cover = playlist.coverUrl || (tracks.length ? tracks[0].artwork : DEFAULT_ARTWORK);
         var count = tracks.length;
         return [
           "<button type='button' class='rpa-official-card' data-open-official='", escapeHtml(playlist.id), "'>",
@@ -1060,7 +1075,7 @@
     document.getElementById("rpa-unlock-music").addEventListener("click", openSubscriptions);
     document.querySelectorAll(".rpa-music-tabs button").forEach(function (button) {
       button.addEventListener("click", function () {
-        activeView = button.getAttribute("data-view") || "all";
+        activeView = button.getAttribute("data-view") || "official";
         renderTracks();
       });
     });
@@ -1070,11 +1085,6 @@
       if (!target || typeof target.getAttribute !== "function") return;
       if (target.getAttribute("data-new-playlist") === "1") {
         showPlaylistModal(null);
-        return;
-      }
-      if (target.getAttribute("data-official-home") === "1") {
-        activeView = "official";
-        renderTracks();
         return;
       }
       var name = target.getAttribute("data-playlist");

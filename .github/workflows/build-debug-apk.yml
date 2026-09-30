@@ -1,9 +1,9 @@
-name: Build Radio Palavra Antiga 1.0.14 APK
+name: Build Radio Palavra Antiga 1.0.17 APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/music-supporter-layout-1.0.14]
+    branches: [main, feature/collaborator-covers-1.0.16]
     paths:
       - 'source-overrides/**'
       - 'ci/rpa106-nav-source.tar.xz.b64'
@@ -30,7 +30,7 @@ jobs:
           mkdir -p app
           tar -xJf /tmp/rpa111-source.tar.xz -C app
           cp -a source-overrides/. app/
-          grep -q '^version: 1.0.14+15$' app/pubspec.yaml
+          grep -q '^version: 1.0.17+18$' app/pubspec.yaml
           grep -q "label: 'Rádio'" app/lib/radio_webview.dart
           grep -q "label: 'Música'" app/lib/radio_webview.dart
           grep -q "label: 'WhatsApp'" app/lib/radio_webview.dart
@@ -115,7 +115,8 @@ jobs:
           fi
           echo "::add-mask::${AZURACAST_API_KEY}"
           python3 app/tools/generate_playlist_manifest.py \
-            --output app/assets/data/official_playlists.json
+            --output app/assets/data/official_playlists.json \
+            --covers-dir /tmp/rpa-album-covers
           test -s app/assets/data/official_playlists.json
           if grep -Fq -- "${AZURACAST_API_KEY}" app/assets/data/official_playlists.json; then
             echo '::error::O catálogo gerado contém dados que não devem ser publicados.'
@@ -228,6 +229,10 @@ jobs:
         working-directory: app
         run: flutter pub get
 
+      - name: Format source
+        working-directory: app
+        run: dart format lib test
+
       - name: Analyze source
         working-directory: app
         run: flutter analyze --no-fatal-infos
@@ -250,27 +255,27 @@ jobs:
           set -euo pipefail
           APK='app/build/app/outputs/flutter-apk/app-debug.apk'
           test -s "${APK}"
-          cp "${APK}" Radio-Palavra-Antiga-1.0.14-teste.apk
-          unzip -t Radio-Palavra-Antiga-1.0.14-teste.apk >/dev/null
+          cp "${APK}" Radio-Palavra-Antiga-1.0.17-teste.apk
+          unzip -t Radio-Palavra-Antiga-1.0.17-teste.apk >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
-          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.14-teste.apk | tee APK-INFO.txt
-          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='15' versionName='1.0.14-debug'" APK-INFO.txt
-          sha256sum Radio-Palavra-Antiga-1.0.14-teste.apk | tee SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.14-teste.apk
+          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.17-teste.apk | tee APK-INFO.txt
+          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='18' versionName='1.0.17-debug'" APK-INFO.txt
+          sha256sum Radio-Palavra-Antiga-1.0.17-teste.apk | tee SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.17-teste.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.14-teste
+          name: Radio-Palavra-Antiga-1.0.17-teste
           path: |
-            Radio-Palavra-Antiga-1.0.14-teste.apk
+            Radio-Palavra-Antiga-1.0.17-teste.apk
             SHA256.txt
             APK-INFO.txt
           if-no-files-found: error
           retention-days: 14
 
       - name: Restore and validate private upload key
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
         shell: bash
         env:
           RPA_UPLOAD_KEYSTORE_B64: ${{ secrets.RPA_UPLOAD_KEYSTORE_B64 }}
@@ -287,7 +292,7 @@ jobs:
             2>/dev/null | grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57'
 
       - name: Build signed Play AAB
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
         working-directory: app
         env:
           RPA_STORE_FILE: /tmp/radio-palavra-antiga-upload.jks
@@ -297,7 +302,7 @@ jobs:
         run: flutter build appbundle --release
 
       - name: Validate signed Play AAB
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
         shell: bash
         run: |
           set -euo pipefail
@@ -306,17 +311,17 @@ jobs:
           unzip -t "${AAB}" >/dev/null
           keytool -printcert -jarfile "${AAB}" | tee AAB-CERTIFICATE.txt
           grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57' AAB-CERTIFICATE.txt
-          cp "${AAB}" Radio-Palavra-Antiga-1.0.14-Play.aab
-          sha256sum Radio-Palavra-Antiga-1.0.14-Play.aab | tee AAB-SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.14-Play.aab
+          cp "${AAB}" Radio-Palavra-Antiga-1.0.17-Play.aab
+          sha256sum Radio-Palavra-Antiga-1.0.17-Play.aab | tee AAB-SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.17-Play.aab
 
       - name: Upload signed Play AAB
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.14-Play-AAB
+          name: Radio-Palavra-Antiga-1.0.17-Play-AAB
           path: |
-            Radio-Palavra-Antiga-1.0.14-Play.aab
+            Radio-Palavra-Antiga-1.0.17-Play.aab
             AAB-SHA256.txt
             AAB-CERTIFICATE.txt
           if-no-files-found: error

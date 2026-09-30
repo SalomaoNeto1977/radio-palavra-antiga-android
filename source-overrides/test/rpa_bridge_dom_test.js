@@ -505,3 +505,36 @@ test("cada faixa pode pedir música sem misturar o pedido com o play", () => {
    vm.runInContext(bridgeSource, context);
    assert.equal(window.__RPA_BRIDGE_INSTALLED, undefined);
  });
+
+test("nomes públicos dos álbuns preservam títulos e removem apenas o prefixo interno", () => {
+  const source = bridgeSource.match(/function publicAlbumTitle\(value\) \{[\s\S]*?\n    \}/)[0];
+  const format = vm.runInNewContext('(' + source + ')');
+  for (const [input, expected] of [
+    ['CD - (70s) Um dia de Ca...', 'Um dia de Ca...'],
+    [' cd – (Cig) A Caravana ', 'A Caravana'],
+    ['CD (interno) Louvor (Ao vivo)', 'Louvor (Ao vivo)'],
+    ['Louvor (Ao vivo)', 'Louvor (Ao vivo)'],
+    ['CD - (70s)', 'CD - (70s)'],
+    ['CD - (70s Um dia', 'CD - (70s Um dia'],
+    ['ABCD - (70s) Louvor', 'ABCD - (70s) Louvor'],
+    ['', ''],
+  ]) {
+    assert.equal(format(input), expected);
+  }
+});
+
+
+test("folder cover has priority over embedded track art; arbitrary URLs are ignored", () => {
+  const helpers = bridgeSource.slice(bridgeSource.indexOf('    function absoluteUrl('), bridgeSource.indexOf('    function normalizeRequest('));
+  const cover = 'https://raw.githubusercontent.com/SalomaoNeto1977/radio-palavra-antiga-android/main/catalog/covers/' + 'a'.repeat(64) + '.jpg';
+  const context = vm.createContext({window: {__RPA_OFFICIAL_PLAYLISTS: {playlists: [{id: 'album', name: 'CD - (70s) Louvor', track_ids: ['t'], cover_url: cover}]}}, URL, BASE_URL: 'https://radio.palavraantiga.org', DEFAULT_ARTWORK: 'https://palavraantiga.org/logo.jpg'});
+  vm.runInContext(helpers, context);
+  context.row = {track_id: 't', download_url: '/audio/t.mp3', media: {title: 'Canção', art: '/art/t.jpg'}};
+  assert.equal(vm.runInContext('normalizeTrack(row).artwork', context), cover);
+  assert.equal(vm.runInContext('normalizeTrack(row).originalArtwork', context), 'https://radio.palavraantiga.org/art/t.jpg');
+  assert.equal(vm.runInContext("albumCoverUrl('https://example.com/cover.jpg')", context), '');
+  assert.equal(vm.runInContext("albumCoverUrl('" + cover + "?token=private')", context), '');
+  assert.equal(vm.runInContext("artUrl('" + cover + "')", context), cover);
+  vm.runInContext('officialPlaylists = []', context);
+  assert.equal(vm.runInContext('normalizeTrack(row).artwork', context), 'https://radio.palavraantiga.org/art/t.jpg');
+});

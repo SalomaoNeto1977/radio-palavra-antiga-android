@@ -1,5 +1,9 @@
 /// Todos os endereços e valores fixos da rádio vivem exclusivamente aqui.
 abstract final class RadioConfig {
+  static const String appVersion = '1.0.17';
+  static final Uri privacyPolicy = Uri.https('palavraantiga.org', '/privacidade');
+  static const String supportEmail = 'radio@palavraantiga.org';
+
   static const String stationName = 'Rádio Palavra Antiga';
   static const String defaultTitle = stationName;
   static const String defaultArtist = 'Em directo';
@@ -65,7 +69,7 @@ abstract final class RadioConfig {
 
   static const String javascriptChannel = 'RPA';
   static const String userAgent =
-      'RadioPalavraAntiga/1.0.14 (Android; Flutter WebView)';
+      'RadioPalavraAntiga/1.0.16 (Android; Flutter WebView)';
   static const String notificationChannelId = 'org.palavraantiga.radio.audio';
   static const String notificationChannelName =
       'Reprodução da Rádio Palavra Antiga';
@@ -96,4 +100,15 @@ abstract final class RadioConfig {
         uri.hasAuthority &&
         allowedHosts.contains(uri.host.toLowerCase());
   }
+  static bool isAlbumCoverUri(Uri uri) =>
+      uri.scheme == 'https' &&
+      uri.host == 'raw.githubusercontent.com' &&
+      uri.userInfo.isEmpty && !uri.hasPort && !uri.hasQuery && !uri.hasFragment &&
+      RegExp(r'^/SalomaoNeto1977/radio-palavra-antiga-android/main/catalog/covers/[a-f0-9]{64}\.jpg$').hasMatch(uri.path);
+
+  static bool isAllowedArtworkUri(Uri uri) =>
+      isAlbumCoverUri(uri) ||
+      (uri.scheme == 'https' && uri.hasAuthority &&
+       allowedHosts.contains(uri.host.toLowerCase()));
+
 }
