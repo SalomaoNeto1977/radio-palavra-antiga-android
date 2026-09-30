@@ -565,7 +565,7 @@ class _RadioWebViewState extends State<RadioWebView>
         bottomNavigationBar: SafeArea(
           top: false,
           child: NavigationBar(
-            height: 68,
+            height: 60,
             selectedIndex: _selectedDestination,
             onDestinationSelected: (int destination) {
               unawaited(_selectDestination(destination));
@@ -579,14 +579,8 @@ class _RadioWebViewState extends State<RadioWebView>
                 label: 'Rádio',
               ),
               NavigationDestination(
-                icon: Icon(
-                  _hasMusicAccess
-                      ? Icons.library_music_outlined
-                      : Icons.lock_outline,
-                ),
-                selectedIcon: Icon(
-                  _hasMusicAccess ? Icons.library_music : Icons.lock_open,
-                ),
+                icon: Icon(Icons.library_music_outlined),
+                selectedIcon: Icon(Icons.library_music),
                 label: 'Música',
               ),
               const NavigationDestination(
