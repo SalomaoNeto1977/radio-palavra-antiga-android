@@ -14,12 +14,14 @@ class NativeMusicPlaylist {
     required this.name,
     required this.description,
     required this.trackIds,
+    this.artwork,
   });
 
   final String id;
   final String name;
   final String description;
   final List<String> trackIds;
+  final Uri? artwork;
 }
 
 class NativeMusicCatalog {
@@ -114,6 +116,18 @@ class NativeMusicCatalogService implements NativeMusicCatalogPort {
     } on Object {
       // Mantém o último catálogo válido. A emissão em directo continua sempre.
     }
+    final Map<String, Uri> albumCovers = <String, Uri>{};
+    for (final NativeMusicPlaylist playlist in playlists) {
+      if (playlist.artwork != null) {
+        for (final String id in playlist.trackIds) {
+          albumCovers.putIfAbsent(id, () => playlist.artwork!);
+        }
+      }
+    }
+    tracks = tracks.map((track) => albumCovers.containsKey(track.id)
+        ? OnDemandTrack(id: track.id, url: track.url, title: track.title,
+            artist: track.artist, album: track.album, artwork: albumCovers[track.id]!)
+        : track).toList(growable: false);
     _cachedTracks = List<OnDemandTrack>.unmodifiable(tracks);
     _cachedOfficialPlaylists = List<NativeMusicPlaylist>.unmodifiable(playlists);
     _cachedAt = DateTime.now();
@@ -129,6 +143,7 @@ class NativeMusicCatalogService implements NativeMusicCatalogPort {
         id: row['id']! as String,
         name: publicAlbumTitle(row['name']! as String),
         description: row['description']! as String,
+        artwork: row['cover_url'] is String ? Uri.tryParse(row['cover_url'] as String) : null,
         trackIds: List<String>.unmodifiable(
           (row['track_ids']! as List).whereType<String>(),
         ),

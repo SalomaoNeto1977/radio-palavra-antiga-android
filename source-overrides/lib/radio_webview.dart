@@ -11,6 +11,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import 'config/radio_config.dart';
 import 'account_page.dart';
+import 'collaborator_access.dart';
 import 'app_restart.dart';
 import 'notification_permission_service.dart';
 import 'official_playlist_catalog_service.dart';
@@ -25,12 +26,14 @@ class RadioWebView extends StatefulWidget {
   const RadioWebView({
     required this.playerController,
     required this.subscriptionController,
+    this.collaboratorController,
     required this.userMusicLibraryStore,
     super.key,
   });
 
   final RadioPlayerController playerController;
   final SupporterSubscriptionController subscriptionController;
+  final CollaboratorAccessController? collaboratorController;
   final UserMusicLibraryStore userMusicLibraryStore;
 
   @override
@@ -568,6 +571,7 @@ class _RadioWebViewState extends State<RadioWebView>
             if (_selectedDestination == 2)
               Positioned.fill(child: AccountPage(
                 controller: widget.subscriptionController,
+                collaboratorController: widget.collaboratorController,
                 libraryStore: widget.userMusicLibraryStore,
                 onSupport: _openSubscriptions,
                 onRestart: () => AppRestart.restart(widget.playerController),

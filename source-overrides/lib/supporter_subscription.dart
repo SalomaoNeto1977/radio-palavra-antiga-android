@@ -304,10 +304,17 @@ class SupporterSubscriptionController extends ChangeNotifier
   SupporterSubscriptionController({
     required SubscriptionBillingGateway billing,
     required SubscriptionEntitlementStore entitlementStore,
+    MusicAccessPort? complimentaryAccess,
     DateTime Function()? clock,
   }) : _billing = billing,
        _entitlementStore = entitlementStore,
-       _clock = clock ?? DateTime.now {
+       _clock = clock ?? DateTime.now,
+       _complimentaryAccess = complimentaryAccess {
+    _complimentarySubscription = complimentaryAccess?.musicAccessChanges.listen((_) {
+      if (_disposed) return;
+      _accessChanges.add(hasMusicAccess);
+      notifyListeners();
+    });
     _purchaseSubscription = _billing.purchaseUpdates.listen(
       (List<BillingPurchase> purchases) {
         unawaited(_processPurchases(purchases));
@@ -323,6 +330,8 @@ class SupporterSubscriptionController extends ChangeNotifier
   final SubscriptionBillingGateway _billing;
   final SubscriptionEntitlementStore _entitlementStore;
   final DateTime Function() _clock;
+  final MusicAccessPort? _complimentaryAccess;
+  StreamSubscription<bool>? _complimentarySubscription;
   final StreamController<bool> _accessChanges =
       StreamController<bool>.broadcast(sync: true);
   late final StreamSubscription<List<BillingPurchase>> _purchaseSubscription;
@@ -340,7 +349,9 @@ class SupporterSubscriptionController extends ChangeNotifier
   String? _message;
 
   @override
-  bool get hasMusicAccess => _hasMusicAccess;
+  bool get hasMusicAccess => _hasMusicAccess || hasComplimentaryAccess;
+
+  bool get hasComplimentaryAccess => _complimentaryAccess?.hasMusicAccess == true;
 
   @override
   Stream<bool> get musicAccessChanges => _accessChanges.stream;
@@ -530,9 +541,10 @@ class SupporterSubscriptionController extends ChangeNotifier
 
   void _setAccess(bool value) {
     if (_hasMusicAccess == value) return;
+    final bool before = hasMusicAccess;
     _hasMusicAccess = value;
     if (!_disposed) {
-      _accessChanges.add(value);
+      if (before != hasMusicAccess) _accessChanges.add(hasMusicAccess);
       notifyListeners();
     }
   }
@@ -553,6 +565,7 @@ class SupporterSubscriptionController extends ChangeNotifier
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    unawaited(_complimentarySubscription?.cancel());
     unawaited(_purchaseSubscription.cancel());
     unawaited(_billing.dispose());
     unawaited(_accessChanges.close());

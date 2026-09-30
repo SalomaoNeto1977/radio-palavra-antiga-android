@@ -447,6 +447,17 @@
       catch (_) { return ""; }
     }
 
+    function albumCoverUrl(value) {
+      return typeof value === "string" && /^https:\/\/raw\.githubusercontent\.com\/SalomaoNeto1977\/radio-palavra-antiga-android\/main\/catalog\/covers\/[a-f0-9]{64}\.jpg$/.test(value) ? value : "";
+    }
+
+    function trackAlbumCover(id, fallback) {
+      var playlist = officialPlaylists.find(function (item) {
+        return item.coverUrl && item.trackIds.includes(id);
+      });
+      return playlist ? playlist.coverUrl : fallback;
+    }
+
     function artUrl(value) {
       var candidate = "";
       if (typeof value === "string") candidate = value;
@@ -460,7 +471,7 @@
           "palavraantiga.org",
           "www.palavraantiga.org"
         ];
-        return parsed.protocol === "https:" && allowed.includes(parsed.hostname)
+        return albumCoverUrl(candidate) || parsed.protocol === "https:" && allowed.includes(parsed.hostname)
           ? parsed.href : DEFAULT_ARTWORK;
       } catch (_) { return DEFAULT_ARTWORK; }
     }
@@ -499,6 +510,7 @@
           name: name,
           description: String(row.description || "").trim(),
           trackIds: trackIds,
+          coverUrl: albumCoverUrl(row.cover_url),
           isFallback: row.is_fallback === true
         };
       }).filter(Boolean);
@@ -521,7 +533,8 @@
         title: String(media.title || media.text || "Sem título").trim() || "Sem título",
         artist: String(media.artist || "Rádio Palavra Antiga").trim() || "Rádio Palavra Antiga",
         album: publicAlbumTitle(media.album),
-        artwork: artUrl(media.art)
+        originalArtwork: artUrl(media.art),
+        artwork: trackAlbumCover(id, artUrl(media.art))
       };
     }
 
@@ -671,6 +684,7 @@
     window.__RPA_SHOW_RADIO = function () { closeMusic(false); };
     window.__RPA_UPDATE_OFFICIAL_PLAYLISTS = function (payload) {
       officialPlaylists = normalizeOfficialPlaylists(payload);
+      catalog.forEach(function (track) { track.artwork = trackAlbumCover(track.id, track.originalArtwork || DEFAULT_ARTWORK); });
       if (panel.classList.contains("open")) renderTracks();
     };
     window.__RPA_SET_MUSIC_ACCESS = function (access) {
@@ -783,7 +797,7 @@
       }
       trackList.innerHTML = "<section class='rpa-official-grid'>" + playlists.map(function (playlist) {
         var tracks = tracksForOfficialPlaylist(playlist);
-        var cover = tracks.length ? tracks[0].artwork : DEFAULT_ARTWORK;
+        var cover = playlist.coverUrl || (tracks.length ? tracks[0].artwork : DEFAULT_ARTWORK);
         var count = tracks.length;
         return [
           "<button type='button' class='rpa-official-card' data-open-official='", escapeHtml(playlist.id), "'>",

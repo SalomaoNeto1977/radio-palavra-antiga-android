@@ -12,15 +12,22 @@ import 'radio_audio_handler.dart';
 import 'radio_player_controller.dart';
 import 'radio_webview.dart';
 import 'supporter_subscription.dart';
+import 'collaborator_access.dart';
 import 'user_music_library.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  final CollaboratorAccessController collaboratorController = CollaboratorAccessController(
+    store: SharedPreferencesCollaboratorCodeStore(),
+  );
+  await collaboratorController.load();
+
   final SupporterSubscriptionController subscriptionController =
       SupporterSubscriptionController(
         billing: PlaySubscriptionBillingGateway(),
         entitlementStore: SharedPreferencesSubscriptionEntitlementStore(),
+        complimentaryAccess: collaboratorController,
       );
   await subscriptionController.loadCachedEntitlement();
   unawaited(subscriptionController.start());
@@ -66,6 +73,7 @@ Future<void> main() async {
     RadioApp(
       playerController: playerController,
       subscriptionController: subscriptionController,
+      collaboratorController: collaboratorController,
       userMusicLibraryStore: userMusicLibraryStore,
     ),
   );
@@ -75,12 +83,14 @@ class RadioApp extends StatelessWidget {
   const RadioApp({
     required this.playerController,
     required this.subscriptionController,
+    required this.collaboratorController,
     required this.userMusicLibraryStore,
     super.key,
   });
 
   final RadioPlayerController playerController;
   final SupporterSubscriptionController subscriptionController;
+  final CollaboratorAccessController collaboratorController;
   final UserMusicLibraryStore userMusicLibraryStore;
 
   @override
@@ -99,6 +109,7 @@ class RadioApp extends StatelessWidget {
         builder: (_) => RadioWebView(
           playerController: playerController,
           subscriptionController: subscriptionController,
+          collaboratorController: collaboratorController,
           userMusicLibraryStore: userMusicLibraryStore,
         ),
       ),

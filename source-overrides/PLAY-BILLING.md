@@ -42,3 +42,32 @@ Usar o mesmo texto de benefício nos quatro produtos:
    conta Google.
 6. Confirmar que uma conta gratuita ainda consegue ouvir a emissão e pedir uma
    música, mas não reproduzir o catálogo no telemóvel nem no Android Auto.
+
+
+## Versão 1.0.16 — colaboradores e capas
+
+A área Conta contém **Tenho um código de colaborador**. Os dez códigos locais de
+quatro dígitos oferecem acesso a todo o catálogo, sem autenticação, servidor ou
+pagamento. A app guarda a ativação no dispositivo e preserva-a ao reiniciar.
+Cada código pode ser usado em mais de um telefone. Reinstalar a app exige voltar
+a introduzir o código. A lista privada é entregue ao responsável, separadamente.
+O acesso de colaborador e o acesso pago são independentes: restaurar compras
+sem uma subscrição não remove o acesso oferecido.
+
+Para a capa de um álbum, colocar um **JPEG verdadeiro chamado `cover.jpg`** na
+mesma pasta das músicas no AzuraCast (aconselhável quadrado, 1000 × 1000).
+O catálogo público é atualizado de hora a hora e exporta a imagem, sem expor
+chaves API ou caminhos internos. A capa da pasta tem prioridade na app, no
+leitor e no Android Auto. Playlists que misturam pastas mantêm a capa existente.
+Sem `cover.jpg`, continua a ser usada a imagem da música. O ficheiro pode ter até
+5 MiB. Trocar a imagem cria um novo URL e evita manter uma capa antiga em cache.
+
+Os preços de referência são 5,99 €, 9,99 €, 19,99 € e 49,99 € por mês.
+O ID legado `apoio_mensal_590` mantém-se para o plano de 5,99 €.
+O valor apresentado pela Google Play tem prioridade sobre o valor de referência.
+Os planos estão configurados para Portugal e Bélgica, conforme os dados fornecidos.
+
+Antes de disponibilizar ao público: carregar o AAB assinado numa faixa de teste
+Google Play e testar comprar, cancelar e restaurar os quatro planos com a versão
+instalada pela Play Store. A compilação e os testes automáticos não substituem
+esse teste real. O APK de teste utiliza `org.palavraantiga.radio.debug`.

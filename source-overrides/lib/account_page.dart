@@ -6,11 +6,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'config/radio_config.dart';
 import 'supporter_subscription.dart';
+import 'collaborator_access.dart';
+import 'collaborator_code_dialog.dart';
 import 'user_music_library.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({
     required this.controller,
+    this.collaboratorController,
     required this.libraryStore,
     required this.onSupport,
     required this.onRestart,
@@ -18,6 +21,7 @@ class AccountPage extends StatefulWidget {
   });
 
   final SupporterSubscriptionController controller;
+  final CollaboratorAccessController? collaboratorController;
   final UserMusicLibraryStore libraryStore;
   final Future<void> Function() onSupport;
   final Future<void> Function() onRestart;
@@ -143,7 +147,7 @@ class _AccountPageState extends State<AccountPage> {
           }
           final bool busy = controller.loading || controller.purchasePending;
           final String status = controller.hasMusicAccess
-              ? plan?.name ?? 'Apoiante'
+              ? plan?.name ?? (controller.hasComplimentaryAccess ? 'Colaborador — acesso oferecido' : 'Apoiante')
               : controller.loading
                   ? 'A verificar o teu apoio…'
                   : controller.purchasePending
@@ -167,10 +171,12 @@ class _AccountPageState extends State<AccountPage> {
                   ]),
                   const SizedBox(height: 8),
                   Text(controller.hasMusicAccess
-                      ? 'Todo o catálogo contigo. Obrigado pelo teu apoio!'
+                      ? controller.hasComplimentaryAccess && plan == null
+                          ? 'Todo o catálogo contigo. Obrigado por colaborares com a rádio!'
+                          : 'Todo o catálogo contigo. Obrigado pelo teu apoio!'
                       : 'A rádio em direto e os pedidos de músicas estão sempre contigo.',
                     style: const TextStyle(color: Color(0xFFD5E2D9), fontSize: 13)),
-                  if (controller.message != null) ...<Widget>[
+                  if (controller.message != null && !controller.hasComplimentaryAccess) ...<Widget>[
                     const SizedBox(height: 8),
                     Text(controller.message!, style: const TextStyle(color: Color(0xFFD5E2D9), fontSize: 12)),
                   ],
@@ -186,6 +192,11 @@ class _AccountPageState extends State<AccountPage> {
               const Text('Usas a rádio sem criar uma conta. O teu apoio fica associado à conta da Google Play usada na compra.', style: TextStyle(fontSize: 13)),
               const SizedBox(height: 6),
               const Text('O nome, o email e a data de renovação consultam-se na Google Play.', style: TextStyle(fontSize: 12, color: Color(0xFF6C625A))),
+              if (widget.collaboratorController != null)
+                _link(Icons.card_giftcard_outlined,
+                  controller.hasComplimentaryAccess ? 'Código de colaborador ativo' : 'Tenho um código de colaborador',
+                  () => unawaited(showCollaboratorCodeDialog(context, widget.collaboratorController!)),
+                  subtitle: 'Acesso oferecido pela rádio, sem pagamento.'),
               _link(Icons.restore, 'Restaurar apoio', busy ? null : () => unawaited(controller.restore()), subtitle: 'Usa a mesma conta Google da compra.'),
               _link(Icons.manage_accounts_outlined, 'Gerir subscrição na Google Play', () => unawaited(_open(RadioConfig.googlePlaySubscriptions))),
               const Divider(),

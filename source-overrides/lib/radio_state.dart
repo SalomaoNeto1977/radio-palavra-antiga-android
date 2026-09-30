@@ -67,7 +67,7 @@ class OnDemandTrack {
     if (id.isEmpty || title.isEmpty || url == null || artwork == null) {
       return null;
     }
-    if (!_isAllowedAudioUri(url) || !_isAllowedArtworkUri(artwork)) {
+    if (!_isAllowedAudioUri(url) || !RadioConfig.isAllowedArtworkUri(artwork)) {
       return null;
     }
 
@@ -87,11 +87,7 @@ class OnDemandTrack {
         uri.host.toLowerCase() == 'radio.palavraantiga.org';
   }
 
-  static bool _isAllowedArtworkUri(Uri uri) {
-    return uri.scheme == 'https' &&
-        uri.hasAuthority &&
-        RadioConfig.allowedHosts.contains(uri.host.toLowerCase());
-  }
+
 }
 
 class NowPlayingMetadata {
