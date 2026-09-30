@@ -1,5 +1,9 @@
 /// Todos os endereços e valores fixos da rádio vivem exclusivamente aqui.
 abstract final class RadioConfig {
+  static const String appVersion = '1.0.15';
+  static final Uri privacyPolicy = Uri.https('palavraantiga.org', '/privacidade');
+  static const String supportEmail = 'radio@palavraantiga.org';
+
   static const String stationName = 'Rádio Palavra Antiga';
   static const String defaultTitle = stationName;
   static const String defaultArtist = 'Em directo';
@@ -65,7 +69,7 @@ abstract final class RadioConfig {
 
   static const String javascriptChannel = 'RPA';
   static const String userAgent =
-      'RadioPalavraAntiga/1.0.14 (Android; Flutter WebView)';
+      'RadioPalavraAntiga/1.0.15 (Android; Flutter WebView)';
   static const String notificationChannelId = 'org.palavraantiga.radio.audio';
   static const String notificationChannelName =
       'Reprodução da Rádio Palavra Antiga';

@@ -505,3 +505,20 @@ test("cada faixa pode pedir música sem misturar o pedido com o play", () => {
    vm.runInContext(bridgeSource, context);
    assert.equal(window.__RPA_BRIDGE_INSTALLED, undefined);
  });
+
+test("nomes públicos dos álbuns preservam títulos e removem apenas o prefixo interno", () => {
+  const source = bridgeSource.match(/function publicAlbumTitle\(value\) \{[\s\S]*?\n    \}/)[0];
+  const format = vm.runInNewContext('(' + source + ')');
+  for (const [input, expected] of [
+    ['CD - (70s) Um dia de Ca...', 'Um dia de Ca...'],
+    [' cd – (Cig) A Caravana ', 'A Caravana'],
+    ['CD (interno) Louvor (Ao vivo)', 'Louvor (Ao vivo)'],
+    ['Louvor (Ao vivo)', 'Louvor (Ao vivo)'],
+    ['CD - (70s)', 'CD - (70s)'],
+    ['CD - (70s Um dia', 'CD - (70s Um dia'],
+    ['ABCD - (70s) Louvor', 'ABCD - (70s) Louvor'],
+    ['', ''],
+  ]) {
+    assert.equal(format(input), expected);
+  }
+});

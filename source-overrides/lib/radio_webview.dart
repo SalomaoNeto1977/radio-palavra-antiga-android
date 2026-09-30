@@ -10,6 +10,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import 'config/radio_config.dart';
+import 'account_page.dart';
+import 'app_restart.dart';
 import 'notification_permission_service.dart';
 import 'official_playlist_catalog_service.dart';
 import 'offline_player.dart';
@@ -397,6 +399,9 @@ class _RadioWebViewState extends State<RadioWebView>
         await _showMusicSection();
         return;
       case 2:
+        _setSelectedDestination(2);
+        return;
+      case 3:
         await _openWhatsapp();
         return;
     }
@@ -509,7 +514,7 @@ class _RadioWebViewState extends State<RadioWebView>
     }
     _handlingBack = true;
     try {
-      if (_selectedDestination == 1) {
+      if (_selectedDestination != 0) {
         await _showRadioSection();
         return;
       }
@@ -538,7 +543,7 @@ class _RadioWebViewState extends State<RadioWebView>
         body: Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            _webViewWidget,
+            Offstage(offstage: _selectedDestination == 2, child: _webViewWidget),
             if (_pageUnavailable)
               Positioned.fill(
                 child: OfflinePlayer(
@@ -560,6 +565,13 @@ class _RadioWebViewState extends State<RadioWebView>
                   ),
                 ),
               ),
+            if (_selectedDestination == 2)
+              Positioned.fill(child: AccountPage(
+                controller: widget.subscriptionController,
+                libraryStore: widget.userMusicLibraryStore,
+                onSupport: _openSubscriptions,
+                onRestart: () => AppRestart.restart(widget.playerController),
+              )),
           ],
         ),
         bottomNavigationBar: SafeArea(
@@ -582,6 +594,11 @@ class _RadioWebViewState extends State<RadioWebView>
                 icon: Icon(Icons.library_music_outlined),
                 selectedIcon: Icon(Icons.library_music),
                 label: 'Música',
+              ),
+              const NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Conta',
               ),
               const NavigationDestination(
                 icon: Icon(Icons.chat_outlined),

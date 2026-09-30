@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'config/radio_config.dart';
+import 'album_title.dart';
 import 'radio_state.dart';
 
 class NowPlayingService {
@@ -69,7 +70,7 @@ class NowPlayingService {
     return NowPlayingMetadata(
       title: title,
       artist: artist,
-      album: album,
+      album: album == null ? null : publicAlbumTitle(album),
       artwork: artwork,
       isLive: true,
     );

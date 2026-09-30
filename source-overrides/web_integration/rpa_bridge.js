@@ -465,6 +465,12 @@
       } catch (_) { return DEFAULT_ARTWORK; }
     }
 
+    function publicAlbumTitle(value) {
+      var title = String(value || "").trim();
+      var match = /^CD\s*(?:[-–—]\s*)?\([^)]*\)\s+(.+)$/i.exec(title);
+      return match ? match[1].trim() : title;
+    }
+
     function normalizeOfficialPlaylists(payload) {
       var rows = Array.isArray(payload)
         ? payload
@@ -473,7 +479,7 @@
       return rows.map(function (row, index) {
         if (!row || typeof row !== "object") return null;
         var id = String(row.id == null ? "playlist-" + index : row.id).trim();
-        var name = String(row.name || "").trim();
+        var name = publicAlbumTitle(row.name);
         if (!id || !name || usedIds.has(id) || !Array.isArray(row.track_ids)) {
           return null;
         }
@@ -514,7 +520,7 @@
         url: url,
         title: String(media.title || media.text || "Sem título").trim() || "Sem título",
         artist: String(media.artist || "Rádio Palavra Antiga").trim() || "Rádio Palavra Antiga",
-        album: String(media.album || "").trim(),
+        album: publicAlbumTitle(media.album),
         artwork: artUrl(media.art)
       };
     }
