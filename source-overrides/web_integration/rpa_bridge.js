@@ -597,7 +597,6 @@
       "<div class='rpa-music-search'><span>⌕</span><input id='rpa-music-search' type='search' aria-label='Pesquisar playlist, música ou artista' placeholder='Pesquisar no catálogo'></div>",
       "<nav class='rpa-music-tabs'>",
       "<button type='button' data-view='official' class='active'>Playlists da rádio</button>",
-      "<button type='button' data-view='all'>Todas</button>",
       "<button type='button' data-view='favorites'>♥ Favoritos</button>",
       "<button type='button' data-view='personal'>As tuas playlists</button>",
       "</nav>",
@@ -750,10 +749,6 @@
     }
 
     function renderPlaylistBar() {
-      if (activeView.indexOf("official:") === 0) {
-        playlistBar.innerHTML = "<button type='button' data-official-home='1'>‹ Todas as playlists</button>";
-        return;
-      }
       var names = personalPlaylistNames();
       if (activeView !== "personal" && activeView.indexOf("personal:") !== 0) {
         playlistBar.innerHTML = "";
@@ -792,7 +787,7 @@
       if (!playlists.length) {
         trackList.innerHTML = availablePlaylists.length
           ? "<div class='rpa-music-empty'>Não encontrei playlists ou músicas.</div>"
-          : "<div class='rpa-music-empty'><b>As playlists da rádio não estão disponíveis nesta versão.</b><br>Podes continuar a ouvir em Todas.</div>";
+          : "<div class='rpa-music-empty'><b>As playlists da rádio não estão disponíveis nesta versão.</b><br>Volta a abrir a área Música daqui a pouco.</div>";
         return;
       }
       trackList.innerHTML = "<section class='rpa-official-grid'>" + playlists.map(function (playlist) {
@@ -1080,7 +1075,7 @@
     document.getElementById("rpa-unlock-music").addEventListener("click", openSubscriptions);
     document.querySelectorAll(".rpa-music-tabs button").forEach(function (button) {
       button.addEventListener("click", function () {
-        activeView = button.getAttribute("data-view") || "all";
+        activeView = button.getAttribute("data-view") || "official";
         renderTracks();
       });
     });
@@ -1090,11 +1085,6 @@
       if (!target || typeof target.getAttribute !== "function") return;
       if (target.getAttribute("data-new-playlist") === "1") {
         showPlaylistModal(null);
-        return;
-      }
-      if (target.getAttribute("data-official-home") === "1") {
-        activeView = "official";
-        renderTracks();
         return;
       }
       var name = target.getAttribute("data-playlist");

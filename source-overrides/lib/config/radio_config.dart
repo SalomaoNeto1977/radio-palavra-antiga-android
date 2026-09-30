@@ -1,6 +1,6 @@
 /// Todos os endereços e valores fixos da rádio vivem exclusivamente aqui.
 abstract final class RadioConfig {
-  static const String appVersion = '1.0.16';
+  static const String appVersion = '1.0.17';
   static final Uri privacyPolicy = Uri.https('palavraantiga.org', '/privacidade');
   static const String supportEmail = 'radio@palavraantiga.org';
 
