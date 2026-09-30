@@ -41,7 +41,8 @@ jobs:
           fi
           echo "::add-mask::${AZURACAST_API_KEY}"
           python3 ci/generate_playlist_manifest.py \
-            --output /tmp/official_playlists.json
+            --output /tmp/official_playlists.json \
+            --covers-dir catalog/covers
           test -s /tmp/official_playlists.json
           if grep -Fq -- "${AZURACAST_API_KEY}" /tmp/official_playlists.json; then
             echo '::error::O catálogo contém dados privados.'
@@ -93,6 +94,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add catalog/official_playlists.json
+          if [[ -d catalog/covers ]]; then git add catalog/covers; fi
           git commit -m 'Update public playlist catalog'
           git pull --rebase origin main
           git push origin HEAD:main

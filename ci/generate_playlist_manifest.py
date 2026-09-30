@@ -9,15 +9,16 @@ On-Demand track identifiers.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
-from urllib.request import Request, urlopen
+from urllib.request import Request, urlopen, build_opener, HTTPRedirectHandler
 
 
 class ManifestError(RuntimeError):
@@ -263,6 +264,71 @@ def fetch_all_rows(
     return rows
 
 
+
+COVERS_BASE_URL = "https://raw.githubusercontent.com/SalomaoNeto1977/radio-palavra-antiga-android/main/catalog/covers"
+
+
+class NoCoverRedirects(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def fetch_folder_cover(base_url: str, station: str, folder: str, api_key: str) -> bytes | None:
+    """Read only cover.jpg; never forward the private key to a redirect target."""
+    filename = str(PurePosixPath(folder) / "cover.jpg")
+    request = Request(
+        base_url.rstrip("/") + f"/api/station/{station}/files/download?file=" + quote(filename, safe=""),
+        headers={"X-API-Key": api_key, "Accept": "image/jpeg"},
+    )
+    try:
+        with build_opener(NoCoverRedirects()).open(request, timeout=12) as response:
+            data = response.read(5 * 1024 * 1024 + 1)
+            if response.headers.get_content_type() != "image/jpeg":
+                return None
+        if len(data) > 5 * 1024 * 1024 or not data.startswith(b"\xff\xd8\xff") or not data.rstrip().endswith(b"\xff\xd9"):
+            return None
+        if api_key.encode() in data:
+            raise ManifestError("A imagem contém dados privados.")
+        return data
+    except HTTPError as error:
+        if error.code in (401, 403):
+            raise ManifestError("Sem permissão para ler as capas da estação.") from None
+        return None
+    except (URLError, TimeoutError, OSError):
+        return None
+
+
+def attach_folder_covers(manifest: dict[str, Any], media: Any, base_url: str,
+                         station: str, api_key: str, covers_dir: Path) -> None:
+    """Use a folder image only for albums whose public tracks share that folder."""
+    folders: dict[str, str] = {}
+    for row in response_rows(media):
+        track_id = str(first_value(row, "unique_id", "uniqueId") or "").strip()
+        raw_path = str(row.get("path") or "")
+        path = PurePosixPath(raw_path)
+        if not track_id or not raw_path or path.is_absolute() or ".." in path.parts or "\\" in raw_path:
+            continue
+        folders[track_id] = str(path.parent)
+    downloaded: dict[str, str | None] = {}
+    for playlist in manifest["playlists"]:
+        if playlist.get("is_fallback"):
+            continue
+        track_folders = {folders.get(t) for t in playlist["track_ids"]}
+        if len(track_folders) != 1 or None in track_folders:
+            continue
+        folder = next(iter(track_folders))
+        if folder not in downloaded:
+            data = fetch_folder_cover(base_url, station, folder, api_key)
+            downloaded[folder] = None
+            if data is not None:
+                digest = hashlib.sha256(data).hexdigest()
+                covers_dir.mkdir(parents=True, exist_ok=True)
+                (covers_dir / (digest + ".jpg")).write_bytes(data)
+                downloaded[folder] = COVERS_BASE_URL + "/" + digest + ".jpg"
+        if downloaded[folder]:
+            playlist["cover_url"] = downloaded[folder]
+
+
 def write_manifest(path: Path, manifest: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -279,6 +345,7 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--station", default="palavraantiga")
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--covers-dir", type=Path)
     return parser.parse_args(argv)
 
 
@@ -309,6 +376,8 @@ def main(argv: Iterable[str] | None = None) -> int:
             api_key,
         )
         manifest = build_manifest(on_demand, playlists, media)
+        if args.covers_dir:
+            attach_folder_covers(manifest, media, args.base_url, station, api_key, args.covers_dir)
         write_manifest(args.output, manifest)
     except ManifestError as error:
         print(f"Erro: {error}", file=sys.stderr)
