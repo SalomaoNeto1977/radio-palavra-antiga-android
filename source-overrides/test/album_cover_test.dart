@@ -39,7 +39,7 @@ void main() {
     final client = MockClient((request) async => http.Response(jsonEncode([{
       'track_id': 'song', 'download_url': 'https://radio.palavraantiga.org/audio/song.mp3',
       'media': {'title': 'Canção', 'artist': 'Artista', 'album': 'CD - (70s) Louvor', 'art': 'https://radio.palavraantiga.org/art/song.jpg'},
-    }]), 200));
+    }]), 200, headers: {'content-type': 'application/json; charset=utf-8'}));
     final service = NativeMusicCatalogService(bundledOfficialPlaylists: manifest(cover), userLibraryStore: _Library(), client: client);
     final catalog = await service.load();
     expect(catalog.tracks.single.artwork.toString(), cover);

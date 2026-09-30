@@ -115,7 +115,8 @@ jobs:
           fi
           echo "::add-mask::${AZURACAST_API_KEY}"
           python3 app/tools/generate_playlist_manifest.py \
-            --output app/assets/data/official_playlists.json
+            --output app/assets/data/official_playlists.json \
+            --covers-dir /tmp/rpa-album-covers
           test -s app/assets/data/official_playlists.json
           if grep -Fq -- "${AZURACAST_API_KEY}" app/assets/data/official_playlists.json; then
             echo '::error::O catálogo gerado contém dados que não devem ser publicados.'
