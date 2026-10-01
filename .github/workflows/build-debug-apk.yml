@@ -331,7 +331,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
         run: |
           curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o /tmp/bundletool.jar
-          java -jar /tmp/bundletool.jar build-apks --bundle=Radio-Palavra-Antiga-1.0.18-Play.aab --output=/tmp/release.apks --mode=universal
+          keytool -genkeypair -keystore /tmp/emulator-test.jks -storepass android -keypass android -alias emulator-test -keyalg RSA -keysize 2048 -validity 30 -dname "CN=Android Emulator Test"
+          java -jar /tmp/bundletool.jar build-apks --bundle=Radio-Palavra-Antiga-1.0.18-Play.aab --output=/tmp/release.apks --mode=universal --ks=/tmp/emulator-test.jks --ks-key-alias=emulator-test --ks-pass=pass:android --key-pass=pass:android
           unzip -p /tmp/release.apks universal.apk > /tmp/release.apk
 
       - name: Set up Android 13 emulator
@@ -340,7 +341,12 @@ jobs:
         run: |
           sudo chmod 666 /dev/kvm
           sdkmanager 'emulator' 'system-images;android-33;google_apis;x86_64'
-          echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --force
+          export ANDROID_USER_HOME="$RUNNER_TEMP/rpa-android"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --path "$ANDROID_AVD_HOME/rpa-startup.avd" --force
+          printf 'avd.ini.encoding=UTF-8\npath=%s\n' "$ANDROID_AVD_HOME/rpa-startup.avd" > "$ANDROID_AVD_HOME/rpa-startup.ini"
+          "$ANDROID_HOME/emulator/emulator" -list-avds
           "$ANDROID_HOME/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/emulator.log 2>&1 &
           timeout 120 adb wait-for-device || { cat /tmp/emulator.log; exit 1; }
           for attempt in {1..90}; do

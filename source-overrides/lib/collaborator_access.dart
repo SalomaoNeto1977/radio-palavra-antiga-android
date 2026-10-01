@@ -63,7 +63,7 @@ class CollaboratorAccessController extends ChangeNotifier implements MusicAccess
 
   Future<void> load() async {
     try {
-      final String? saved = await _store.readHash();
+      final String? saved = await _store.readHash().timeout(const Duration(seconds: 3));
       _setActive(saved != null && _acceptedHashes.contains(saved));
       if (!_active && saved != null) await _store.clear();
     } on Object {

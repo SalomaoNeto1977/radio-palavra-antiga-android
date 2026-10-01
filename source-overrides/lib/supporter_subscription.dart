@@ -367,7 +367,7 @@ class SupporterSubscriptionController extends ChangeNotifier
   Future<void> loadCachedEntitlement() async {
     try {
       final CachedSubscriptionEntitlement cached =
-          await _entitlementStore.read();
+          await _entitlementStore.read().timeout(const Duration(seconds: 3));
       final DateTime? verifiedAt = cached.verifiedAt;
       final bool fresh = cached.active &&
           cached.productId != null &&

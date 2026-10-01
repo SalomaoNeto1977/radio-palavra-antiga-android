@@ -25,7 +25,8 @@ jobs:
         run: |
           gh run download 36747811933 -n Radio-Palavra-Antiga-1.0.17-Play-AAB -D play-release
           curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o /tmp/bundletool.jar
-          java -jar /tmp/bundletool.jar build-apks --bundle=play-release/Radio-Palavra-Antiga-1.0.17-Play.aab --output=/tmp/release.apks --mode=universal
+          keytool -genkeypair -keystore /tmp/emulator-test.jks -storepass android -keypass android -alias emulator-test -keyalg RSA -keysize 2048 -validity 30 -dname "CN=Android Emulator Test"
+          java -jar /tmp/bundletool.jar build-apks --bundle=play-release/Radio-Palavra-Antiga-1.0.17-Play.aab --output=/tmp/release.apks --mode=universal --ks=/tmp/emulator-test.jks --ks-key-alias=emulator-test --ks-pass=pass:android --key-pass=pass:android
           unzip -p /tmp/release.apks universal.apk > /tmp/release.apk
       - name: Set up Android 13 emulator
         timeout-minutes: 7

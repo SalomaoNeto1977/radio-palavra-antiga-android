@@ -47,9 +47,7 @@ Future<RadioApp> initializeRadioApp() async {
   final CollaboratorAccessController collaboratorController = CollaboratorAccessController(
     store: SharedPreferencesCollaboratorCodeStore(),
   );
-  await collaboratorController.load().timeout(
-    const Duration(seconds: 3), onTimeout: () {},
-  );
+  await collaboratorController.load();
 
   final SupporterSubscriptionController subscriptionController =
       SupporterSubscriptionController(
@@ -57,9 +55,7 @@ Future<RadioApp> initializeRadioApp() async {
         entitlementStore: SharedPreferencesSubscriptionEntitlementStore(),
         complimentaryAccess: collaboratorController,
       );
-  await subscriptionController.loadCachedEntitlement().timeout(
-    const Duration(seconds: 3), onTimeout: () {},
-  );
+  await subscriptionController.loadCachedEntitlement();
   unawaited(subscriptionController.start());
 
   final Uri? bundledArtwork = await ArtworkService.prepareBundledArtwork().timeout(
