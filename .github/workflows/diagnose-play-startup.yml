@@ -1,0 +1,51 @@
+name: Diagnose Play release startup
+on:
+  push:
+    branches: [feature/collaborator-covers-1.0.16]
+    paths: ['.github/workflows/diagnose-play-startup.yml', 'ci/check_android_startup.sh']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  release-startup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Prepare exact published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 36747811933 -n Radio-Palavra-Antiga-1.0.17-Play-AAB -D play-release
+          curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o /tmp/bundletool.jar
+          java -jar /tmp/bundletool.jar build-apks --bundle=play-release/Radio-Palavra-Antiga-1.0.17-Play.aab --output=/tmp/release.apks --mode=universal
+          unzip -p /tmp/release.apks universal.apk > /tmp/release.apk
+      - name: Set up Android 13 emulator
+        run: |
+          sudo chmod 666 /dev/kvm
+          sdkmanager 'emulator' 'system-images;android-33;google_apis;x86_64'
+          echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --force
+          "$ANDROID_HOME/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/emulator.log 2>&1 &
+          adb wait-for-device
+          for attempt in {1..90}; do
+            if [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; then break; fi
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+          adb shell input keyevent 82
+      - name: Inspect production-mode startup
+        run: bash ci/check_android_startup.sh /tmp/release.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: RPA-1.0.17-release-startup-evidence
+          path: startup-evidence/
+          if-no-files-found: warn
+          retention-days: 7
