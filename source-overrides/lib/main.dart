@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'artwork_service.dart';
+import 'app_restart.dart';
+import 'app_startup.dart';
 import 'config/radio_config.dart';
 import 'foreground_interface.dart';
 import 'native_music_catalog_service.dart';
@@ -17,11 +19,37 @@ import 'user_music_library.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Android Auto starts the shared engine without a phone surface. Initialize
+  // audio immediately even when there is no Flutter frame to build the UI.
+  final Future<RadioApp> initialization = initializeRadioApp();
+  unawaited(initialization.then<void>((_) {}, onError: _reportStartupError));
+  runApp(AppStartup<RadioApp>(
+    initialize: () => initialization,
+    builder: (RadioApp app) => app,
+    restart: AppRestart.restartProcess,
+    onError: (Object error, StackTrace stack) {
+      if (error is TimeoutException) _reportStartupError(error, stack);
+    },
+  ));
+}
+
+void _reportStartupError(Object error, StackTrace stack) {
+  FlutterError.reportError(FlutterErrorDetails(
+    exception: error,
+    stack: stack,
+    library: 'radio startup',
+    context: ErrorDescription('while starting Rádio Palavra Antiga'),
+  ));
+}
+
+Future<RadioApp> initializeRadioApp() async {
 
   final CollaboratorAccessController collaboratorController = CollaboratorAccessController(
     store: SharedPreferencesCollaboratorCodeStore(),
   );
-  await collaboratorController.load();
+  await collaboratorController.load().timeout(
+    const Duration(seconds: 3), onTimeout: () {},
+  );
 
   final SupporterSubscriptionController subscriptionController =
       SupporterSubscriptionController(
@@ -29,10 +57,14 @@ Future<void> main() async {
         entitlementStore: SharedPreferencesSubscriptionEntitlementStore(),
         complimentaryAccess: collaboratorController,
       );
-  await subscriptionController.loadCachedEntitlement();
+  await subscriptionController.loadCachedEntitlement().timeout(
+    const Duration(seconds: 3), onTimeout: () {},
+  );
   unawaited(subscriptionController.start());
 
-  final Uri? bundledArtwork = await ArtworkService.prepareBundledArtwork();
+  final Uri? bundledArtwork = await ArtworkService.prepareBundledArtwork().timeout(
+    const Duration(seconds: 3), onTimeout: () => null,
+  );
   final String bundledOfficialPlaylists = await rootBundle.loadString(
     RadioConfig.officialPlaylistsAsset,
   );
@@ -64,19 +96,29 @@ Future<void> main() async {
           artDownscaleHeight: 512,
         ),
       );
-  await AudioService.androidForceEnableMediaButtons();
+  // Media button availability must not prevent the phone interface from opening.
+  unawaited(_enableMediaButtons());
   final RadioPlayerController playerController = RadioPlayerController(
     audioHandler,
   );
 
-  runApp(
-    RadioApp(
+  return RadioApp(
       playerController: playerController,
       subscriptionController: subscriptionController,
       collaboratorController: collaboratorController,
       userMusicLibraryStore: userMusicLibraryStore,
-    ),
   );
+}
+
+Future<void> _enableMediaButtons() async {
+  try {
+    await AudioService.androidForceEnableMediaButtons().timeout(
+      const Duration(seconds: 3),
+    );
+  } on Object catch (error, stack) {
+    FlutterError.reportError(FlutterErrorDetails(exception: error, stack: stack,
+      library: 'radio media buttons'));
+  }
 }
 
 class RadioApp extends StatelessWidget {

@@ -1,4 +1,4 @@
-name: Build Radio Palavra Antiga 1.0.17 APK
+name: Build Radio Palavra Antiga 1.0.18 APK
 
 on:
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
           mkdir -p app
           tar -xJf /tmp/rpa111-source.tar.xz -C app
           cp -a source-overrides/. app/
-          grep -q '^version: 1.0.17+18$' app/pubspec.yaml
+          grep -q '^version: 1.0.18+19$' app/pubspec.yaml
           grep -q "label: 'Rádio'" app/lib/radio_webview.dart
           grep -q "label: 'Música'" app/lib/radio_webview.dart
           grep -q "label: 'WhatsApp'" app/lib/radio_webview.dart
@@ -255,20 +255,20 @@ jobs:
           set -euo pipefail
           APK='app/build/app/outputs/flutter-apk/app-debug.apk'
           test -s "${APK}"
-          cp "${APK}" Radio-Palavra-Antiga-1.0.17-teste.apk
-          unzip -t Radio-Palavra-Antiga-1.0.17-teste.apk >/dev/null
+          cp "${APK}" Radio-Palavra-Antiga-1.0.18-teste.apk
+          unzip -t Radio-Palavra-Antiga-1.0.18-teste.apk >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
-          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.17-teste.apk | tee APK-INFO.txt
-          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='18' versionName='1.0.17-debug'" APK-INFO.txt
-          sha256sum Radio-Palavra-Antiga-1.0.17-teste.apk | tee SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.17-teste.apk
+          "${AAPT}" dump badging Radio-Palavra-Antiga-1.0.18-teste.apk | tee APK-INFO.txt
+          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='19' versionName='1.0.18-debug'" APK-INFO.txt
+          sha256sum Radio-Palavra-Antiga-1.0.18-teste.apk | tee SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.18-teste.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.17-teste
+          name: Radio-Palavra-Antiga-1.0.18-teste
           path: |
-            Radio-Palavra-Antiga-1.0.17-teste.apk
+            Radio-Palavra-Antiga-1.0.18-teste.apk
             SHA256.txt
             APK-INFO.txt
           if-no-files-found: error
@@ -311,18 +311,54 @@ jobs:
           unzip -t "${AAB}" >/dev/null
           keytool -printcert -jarfile "${AAB}" | tee AAB-CERTIFICATE.txt
           grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57' AAB-CERTIFICATE.txt
-          cp "${AAB}" Radio-Palavra-Antiga-1.0.17-Play.aab
-          sha256sum Radio-Palavra-Antiga-1.0.17-Play.aab | tee AAB-SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.0.17-Play.aab
+          cp "${AAB}" Radio-Palavra-Antiga-1.0.18-Play.aab
+          sha256sum Radio-Palavra-Antiga-1.0.18-Play.aab | tee AAB-SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.0.18-Play.aab
 
       - name: Upload signed Play AAB
         if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.0.17-Play-AAB
+          name: Radio-Palavra-Antiga-1.0.18-Play-AAB
           path: |
-            Radio-Palavra-Antiga-1.0.17-Play.aab
+            Radio-Palavra-Antiga-1.0.18-Play.aab
             AAB-SHA256.txt
             AAB-CERTIFICATE.txt
           if-no-files-found: error
+          retention-days: 7
+
+      - name: Prepare release APK for Android startup check
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
+        run: |
+          curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o /tmp/bundletool.jar
+          java -jar /tmp/bundletool.jar build-apks --bundle=Radio-Palavra-Antiga-1.0.18-Play.aab --output=/tmp/release.apks --mode=universal
+          unzip -p /tmp/release.apks universal.apk > /tmp/release.apk
+
+      - name: Set up Android 13 emulator
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
+        timeout-minutes: 7
+        run: |
+          sudo chmod 666 /dev/kvm
+          sdkmanager 'emulator' 'system-images;android-33;google_apis;x86_64'
+          echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --force
+          "$ANDROID_HOME/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/emulator.log 2>&1 &
+          timeout 120 adb wait-for-device || { cat /tmp/emulator.log; exit 1; }
+          for attempt in {1..90}; do
+            if [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; then break; fi
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+          adb shell input keyevent 82
+
+      - name: Verify release startup on Android 13
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/feature/collaborator-covers-1.0.16'
+        run: bash ci/check_android_startup.sh /tmp/release.apk verify
+
+      - name: Upload Android startup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RPA-1.0.18-release-startup-evidence
+          path: startup-evidence/
+          if-no-files-found: warn
           retention-days: 7

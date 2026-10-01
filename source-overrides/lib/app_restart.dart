@@ -7,6 +7,8 @@ import 'radio_player_controller.dart';
 class AppRestart {
   static const MethodChannel channel = MethodChannel('org.palavraantiga.radio/restart');
 
+  static Future<void> restartProcess() => channel.invokeMethod<void>('restart');
+
   static Future<void> restart(RadioPlayerController player) async {
     // Even an unresponsive audio player must not block the recovery action.
     try {
@@ -18,6 +20,6 @@ class AppRestart {
       pending: false, routes: const <String>{},
     );
     await SharedPreferencesPlaybackSelectionStore().clear();
-    await channel.invokeMethod<void>('restart');
+    await restartProcess();
   }
 }

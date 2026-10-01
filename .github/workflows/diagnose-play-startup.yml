@@ -28,12 +28,13 @@ jobs:
           java -jar /tmp/bundletool.jar build-apks --bundle=play-release/Radio-Palavra-Antiga-1.0.17-Play.aab --output=/tmp/release.apks --mode=universal
           unzip -p /tmp/release.apks universal.apk > /tmp/release.apk
       - name: Set up Android 13 emulator
+        timeout-minutes: 7
         run: |
           sudo chmod 666 /dev/kvm
           sdkmanager 'emulator' 'system-images;android-33;google_apis;x86_64'
           echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --force
           "$ANDROID_HOME/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/emulator.log 2>&1 &
-          adb wait-for-device
+          timeout 120 adb wait-for-device || { cat /tmp/emulator.log; exit 1; }
           for attempt in {1..90}; do
             if [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; then break; fi
             sleep 2
