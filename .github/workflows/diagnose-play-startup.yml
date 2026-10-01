@@ -32,7 +32,12 @@ jobs:
         run: |
           sudo chmod 666 /dev/kvm
           sdkmanager 'emulator' 'system-images;android-33;google_apis;x86_64'
-          echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --force
+          export ANDROID_USER_HOME="$RUNNER_TEMP/rpa-android"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --path "$ANDROID_AVD_HOME/rpa-startup.avd" --force
+          printf 'avd.ini.encoding=UTF-8\npath=%s\n' "$ANDROID_AVD_HOME/rpa-startup.avd" > "$ANDROID_AVD_HOME/rpa-startup.ini"
+          "$ANDROID_HOME/emulator/emulator" -list-avds
           "$ANDROID_HOME/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/emulator.log 2>&1 &
           timeout 120 adb wait-for-device || { cat /tmp/emulator.log; exit 1; }
           for attempt in {1..90}; do
