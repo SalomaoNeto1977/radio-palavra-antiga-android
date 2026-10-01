@@ -3,18 +3,22 @@ set -euo pipefail
 APK="$1"
 export RPA_VERIFY_STARTUP="${2:-diagnose}"
 mkdir -p startup-evidence
+trap 'cp /tmp/emulator.log startup-evidence/emulator.log 2>/dev/null || true; kill "${LOGCAT_PID:-}" 2>/dev/null || true' EXIT
 adb install -r "$APK"
 adb logcat -c
+adb logcat -v threadtime > startup-evidence/logcat.txt &
+LOGCAT_PID=$!
 adb shell am force-stop org.palavraantiga.radio
 adb shell am start -W -n org.palavraantiga.radio/org.palavraantiga.radio_palavra_antiga.MainActivity
-sleep 40
-adb shell uiautomator dump /sdcard/startup.xml || true
-sleep 2
-adb shell uiautomator dump /sdcard/startup.xml || true
+sleep 8
+timeout 15 adb exec-out screencap -p > startup-evidence/startup-early.png || true
+sleep 32
+timeout 15 adb exec-out screencap -p > startup-evidence/startup.png || true
+timeout 15 adb shell uiautomator dump /sdcard/startup.xml || true
 adb pull /sdcard/startup.xml startup-evidence/startup.xml || true
-adb exec-out screencap -p > startup-evidence/startup.png
-adb logcat -d -v threadtime > startup-evidence/logcat.txt
-adb shell dumpsys activity activities > startup-evidence/activity.txt
+adb shell dumpsys activity activities > startup-evidence/activity.txt || true
+kill "$LOGCAT_PID" 2>/dev/null || true
+cp /tmp/emulator.log startup-evidence/emulator.log 2>/dev/null || true
 python3 - <<'PY'
 from pathlib import Path
 import re
