@@ -33,13 +33,16 @@ jobs:
         run: |
           sudo chmod 666 /dev/kvm
           sdkmanager 'emulator' 'system-images;android-33;google_apis;x86_64'
+          curl -fL https://dl.google.com/android/repository/emulator-linux_x64-14472402.zip -o /tmp/emulator-36.zip
+          echo 'c8ab9ffbc4c2d11c02e06e81a9d9f81970177dc5ab599e3a30eb08a4a5496a67  /tmp/emulator-36.zip' | sha256sum -c -
+          unzip -q /tmp/emulator-36.zip -d "$RUNNER_TEMP/rpa-emulator"
           export ANDROID_USER_HOME="$RUNNER_TEMP/rpa-android"
           export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
           mkdir -p "$ANDROID_AVD_HOME"
           echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --path "$ANDROID_AVD_HOME/rpa-startup.avd" --force
           printf 'avd.ini.encoding=UTF-8\npath=%s\n' "$ANDROID_AVD_HOME/rpa-startup.avd" > "$ANDROID_AVD_HOME/rpa-startup.ini"
-          "$ANDROID_HOME/emulator/emulator" -list-avds
-          "$ANDROID_HOME/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu software -feature -Vulkan -memory 1536 -cores 2 > /tmp/emulator.log 2>&1 &
+          "$RUNNER_TEMP/rpa-emulator/emulator/emulator" -list-avds
+          "$RUNNER_TEMP/rpa-emulator/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -feature -Vulkan -memory 1536 -cores 2 > /tmp/emulator.log 2>&1 &
           timeout 120 adb wait-for-device || { cat /tmp/emulator.log; exit 1; }
           for attempt in {1..90}; do
             if [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; then break; fi
@@ -48,11 +51,24 @@ jobs:
           test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
           adb shell input keyevent 82
       - name: Inspect production-mode startup
-        run: bash ci/check_android_startup.sh /tmp/release.apk
+        timeout-minutes: 3
+        run: |
+          bash ci/check_android_startup.sh /tmp/release.apk verify
+          mv startup-evidence startup-evidence-1.0.17
+      - name: Prepare candidate release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 36825502891 -n Radio-Palavra-Antiga-1.0.18-Play-AAB -D candidate-release
+          java -jar /tmp/bundletool.jar build-apks --bundle=candidate-release/Radio-Palavra-Antiga-1.0.18-Play.aab --output=/tmp/candidate.apks --mode=universal --ks=/tmp/emulator-test.jks --ks-key-alias=emulator-test --ks-pass=pass:android --key-pass=pass:android
+          unzip -p /tmp/candidate.apks universal.apk > /tmp/candidate.apk
+      - name: Verify candidate release startup
+        timeout-minutes: 3
+        run: bash ci/check_android_startup.sh /tmp/candidate.apk verify
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: RPA-1.0.17-release-startup-evidence
-          path: startup-evidence/
+          name: RPA-release-startup-comparison
+          path: startup-evidence*/
           if-no-files-found: warn
           retention-days: 7
