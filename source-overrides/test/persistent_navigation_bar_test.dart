@@ -5,13 +5,33 @@ import 'package:radio_palavra_antiga/persistent_navigation_bar.dart';
 Widget phoneShell({required Widget body, required ValueChanged<int> onSelect}) {
   return MaterialApp(
     home: Scaffold(
-          body: body,
-          bottomNavigationBar: PersistentNavigationBar(
-            selectedIndex: 2,
-            onDestinationSelected: onSelect,
-          ),
+      body: body,
+      bottomNavigationBar: PersistentNavigationBar(
+        selectedIndex: 2,
+        onDestinationSelected: onSelect,
+      ),
     ),
   );
+}
+
+void background(WidgetTester tester) {
+  for (final AppLifecycleState state in <AppLifecycleState>[
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+}
+
+void resume(WidgetTester tester) {
+  for (final AppLifecycleState state in <AppLifecycleState>[
+    AppLifecycleState.hidden,
+    AppLifecycleState.inactive,
+    AppLifecycleState.resumed,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
 }
 
 void main() {
@@ -27,9 +47,9 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Pesquisa guardada');
     final Element originalBody = tester.element(find.byType(TextField));
     for (int cycle = 0; cycle < 30; cycle += 1) {
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      background(tester);
       await tester.pump();
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      resume(tester);
       await tester.pumpAndSettle();
       expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex, 2);
       for (final String label in <String>['Rádio', 'Música', 'Conta', 'WhatsApp']) {
@@ -62,11 +82,11 @@ void main() {
   ) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpWidget(phoneShell(body: const SizedBox(), onSelect: (_) {}));
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    background(tester);
+    resume(tester);
+    background(tester);
     await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    resume(tester);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);

@@ -5,6 +5,7 @@ export RPA_VERIFY_STARTUP="${2:-diagnose}"
 mkdir -p startup-evidence
 trap 'cp /tmp/emulator.log startup-evidence/emulator.log 2>/dev/null || true; kill "${LOGCAT_PID:-}" 2>/dev/null || true' EXIT
 adb install -r "$APK"
+adb shell pm grant org.palavraantiga.radio android.permission.POST_NOTIFICATIONS
 adb logcat -c
 adb logcat -v threadtime > startup-evidence/logcat.txt &
 LOGCAT_PID=$!
@@ -34,3 +35,4 @@ if os.environ['RPA_VERIFY_STARTUP'] == 'verify':
     assert not any('Unhandled Exception' in line for line in important), 'Unhandled startup exception'
     print('Release startup: phone navigation present, no unhandled exceptions.')
 PY
+
