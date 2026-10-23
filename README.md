@@ -1,6 +1,6 @@
 # Rádio Palavra Antiga Android
 
-Aplicação Android oficial da Rádio Cristã Portuguesa Palavra Antiga. A versão **1.1.9+20** foi testada pelo utilizador e aprovada para envio à Google Play.
+Aplicação Android oficial da Rádio Cristã Portuguesa Palavra Antiga. A versão **1.1.9+20** foi testada pelo utilizador e enviada à Google Play em **23/10/2026**.
 
 No telefone, a app mantém os destinos **Rádio | Música | Conta | WhatsApp**. A interface web é apresentada numa WebView; a emissão, a biblioteca, a MediaSession e o Android Auto usam o serviço de áudio nativo.
 
@@ -23,9 +23,9 @@ A compilação está no [ensaio de compilação](https://github.com/SalomaoNeto1
 | Ficheiro | Pacote Android | Utilização |
 | --- | --- | --- |
 | Radio-Palavra-Antiga-1.1.9-teste.apk | org.palavraantiga.radio.debug | Instala a app independente «Palavra Antiga — Teste». |
-| Radio-Palavra-Antiga-1.1.9-Play.aab | org.palavraantiga.radio | Pacote preparado para envio à Google Play. Publicação pendente. |
+| Radio-Palavra-Antiga-1.1.9-Play.aab | org.palavraantiga.radio | Enviado à Google Play para produção. Aguarda verificações e revisão da Google. |
 
-A confirmação física foi recebida. O envio à Google Play continua pendente; o pacote aprovado não foi alterado desde a compilação indicada.
+A confirmação física foi recebida e o envio do lançamento **1.1.9 — Menu e retoma da app** foi confirmado na Play Console em 23/10/2026. O pacote aprovado não foi alterado desde a compilação indicada. A implementação está configurada para 100% dos utilizadores nos países já selecionados, com publicação automática após aprovação. Foi necessário reiniciar a revisão anterior da 1.0.18; o estado inicial após o envio era «Alterações em revisão», com as verificações rápidas da Google ainda em curso. O envio não significa que a versão já esteja disponível na loja.
 
 ## Catálogo público
 
