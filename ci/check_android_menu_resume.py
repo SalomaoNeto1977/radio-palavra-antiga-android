@@ -83,7 +83,7 @@ adb('shell', 'input', 'tap', str((x1+x2)//2), str((y1+y2)//2))
 time.sleep(1)
 menu_bounds('menu-account-after-resume')
 content = (EVIDENCE / 'menu-account-after-resume.xml').read_text()
-assert 'Reiniciar' in content, 'Account destination did not open after resume'
+assert 'A tua conta' in content, 'Account destination did not open after resume'
 results.append({'case': 'account-after-resume', 'pixels': check_pixels('menu-account-after-resume', boxes)})
 x1, y1, x2, y2 = boxes['Rádio']
 adb('shell', 'input', 'tap', str((x1+x2)//2), str((y1+y2)//2))
