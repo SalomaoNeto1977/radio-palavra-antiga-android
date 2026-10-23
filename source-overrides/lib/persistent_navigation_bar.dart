@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Hybrid Composition can lose a retained Flutter layer when Android restores
-/// the phone surface. Recreate only the menu's paint layer after that surface
-/// has resumed. The selected destination and the WebView stay owned by the shell.
+/// Refresh the menu's paint layer when the existing phone window resumes.
+/// Activity destruction and recreation are handled by ForegroundInterface;
+/// ordinary background/foreground changes retain the selection and WebView.
 class PersistentNavigationBar extends StatefulWidget {
   const PersistentNavigationBar({
     required this.selectedIndex,

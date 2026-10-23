@@ -1,5 +1,11 @@
 # Rádio Palavra Antiga Android
 
+## Correção em validação — 1.1.10+21
+
+Ao fechar a janela com o áudio ainda ativo e reabrir pelo ícone ou pela Play Store, a 1.1.9 podia manter os botões do menu a receber toques enquanto a camada Flutter ficava invisível, incluindo Conta. A 1.1.10 recria a interface do telefone quando a Activity anterior é destruída e apresenta a WebView através de uma textura, evitando a composição antiga com superfícies Flutter sobrepostas. O serviço de áudio e os controladores permanecem fora dessa interface.
+
+Os testes de ciclo de vida distinguem uma passagem normal para segundo plano da destruição da janela, incluindo destruição e reabertura sem um frame intermédio. A verificação Android foi alargada para fechar e reabrir a Activity com a rádio em reprodução, conferir o mesmo processo e a sessão de áudio e verificar os píxeis reais do menu e de Conta. A compilação e estes testes ainda estão em curso; não existe confirmação física nem publicação desta versão.
+
 Aplicação Android oficial da Rádio Cristã Portuguesa Palavra Antiga. A versão **1.1.9+20** foi testada pelo utilizador e enviada à Google Play em **23/10/2026**.
 
 No telefone, a app mantém os destinos **Rádio | Música | Conta | WhatsApp**. A interface web é apresentada numa WebView; a emissão, a biblioteca, a MediaSession e o Android Auto usam o serviço de áudio nativo.

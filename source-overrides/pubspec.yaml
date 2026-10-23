@@ -1,7 +1,7 @@
 name: radio_palavra_antiga
 description: Aplicação Android oficial da Rádio Palavra Antiga.
 publish_to: "none"
-version: 1.1.9+20
+version: 1.1.10+21
 
 environment:
   sdk: ^3.12.0

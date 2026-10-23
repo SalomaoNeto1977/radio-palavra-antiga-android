@@ -361,7 +361,11 @@ class _RadioWebViewState extends State<RadioWebView>
         params: AndroidWebViewWidgetCreationParams(
           controller: _webViewController.platform,
           gestureRecognizers: gestures,
-          displayWithHybridComposition: true,
+          // Keep the WebView inside Flutter's texture composition. The legacy
+          // hybrid mode splits Flutter into Android overlay surfaces; after an
+          // audio-only interval those surfaces can leave the menu and Conta
+          // invisible even though their hit regions still receive taps.
+          displayWithHybridComposition: false,
         ),
       );
     }
