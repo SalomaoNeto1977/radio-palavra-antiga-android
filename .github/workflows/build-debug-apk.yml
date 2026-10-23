@@ -1,9 +1,9 @@
-name: Build Radio Palavra Antiga 1.1.9 APK
+name: Build Radio Palavra Antiga 1.1.10 APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [fix/menu-retoma-1.1.9]
+    branches: [fix/menu-reabertura-1.1.10]
     paths:
       - 'source-overrides/**'
       - 'ci/rpa106-nav-source.tar.xz.b64'
@@ -30,7 +30,7 @@ jobs:
           mkdir -p app
           tar -xJf /tmp/rpa111-source.tar.xz -C app
           cp -a source-overrides/. app/
-          grep -q '^version: 1.1.9+20$' app/pubspec.yaml
+          grep -q '^version: 1.1.10+21$' app/pubspec.yaml
           grep -q "label: 'Rádio'" app/lib/persistent_navigation_bar.dart
           grep -q "label: 'Música'" app/lib/persistent_navigation_bar.dart
           grep -q "label: 'WhatsApp'" app/lib/persistent_navigation_bar.dart
@@ -177,27 +177,27 @@ jobs:
           set -euo pipefail
           APK='app/build/app/outputs/flutter-apk/app-debug.apk'
           test -s "${APK}"
-          cp "${APK}" Radio-Palavra-Antiga-1.1.9-teste.apk
-          unzip -t Radio-Palavra-Antiga-1.1.9-teste.apk >/dev/null
+          cp "${APK}" Radio-Palavra-Antiga-1.1.10-teste.apk
+          unzip -t Radio-Palavra-Antiga-1.1.10-teste.apk >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/36.0.0/aapt"
-          "${AAPT}" dump badging Radio-Palavra-Antiga-1.1.9-teste.apk | tee APK-INFO.txt
-          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='20' versionName='1.1.9-debug'" APK-INFO.txt
-          sha256sum Radio-Palavra-Antiga-1.1.9-teste.apk | tee SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.1.9-teste.apk
+          "${AAPT}" dump badging Radio-Palavra-Antiga-1.1.10-teste.apk | tee APK-INFO.txt
+          grep -q "package: name='org.palavraantiga.radio.debug' versionCode='21' versionName='1.1.10-debug'" APK-INFO.txt
+          sha256sum Radio-Palavra-Antiga-1.1.10-teste.apk | tee SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.1.10-teste.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.1.9-teste
+          name: Radio-Palavra-Antiga-1.1.10-teste
           path: |
-            Radio-Palavra-Antiga-1.1.9-teste.apk
+            Radio-Palavra-Antiga-1.1.10-teste.apk
             SHA256.txt
             APK-INFO.txt
           if-no-files-found: error
           retention-days: 14
 
       - name: Restore and validate private upload key
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-retoma-1.1.9'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-reabertura-1.1.10'
         shell: bash
         env:
           RPA_UPLOAD_KEYSTORE_B64: ${{ secrets.RPA_UPLOAD_KEYSTORE_B64 }}
@@ -214,7 +214,7 @@ jobs:
             2>/dev/null | grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57'
 
       - name: Build signed Play AAB
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-retoma-1.1.9'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-reabertura-1.1.10'
         working-directory: app
         env:
           RPA_STORE_FILE: /tmp/radio-palavra-antiga-upload.jks
@@ -224,7 +224,7 @@ jobs:
         run: flutter build appbundle --release
 
       - name: Validate signed Play AAB
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-retoma-1.1.9'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-reabertura-1.1.10'
         shell: bash
         run: |
           set -euo pipefail
@@ -233,67 +233,81 @@ jobs:
           unzip -t "${AAB}" >/dev/null
           keytool -printcert -jarfile "${AAB}" | tee AAB-CERTIFICATE.txt
           grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57' AAB-CERTIFICATE.txt
-          cp "${AAB}" Radio-Palavra-Antiga-1.1.9-Play.aab
-          sha256sum Radio-Palavra-Antiga-1.1.9-Play.aab | tee AAB-SHA256.txt
-          ls -lh Radio-Palavra-Antiga-1.1.9-Play.aab
+          cp "${AAB}" Radio-Palavra-Antiga-1.1.10-Play.aab
+          sha256sum Radio-Palavra-Antiga-1.1.10-Play.aab | tee AAB-SHA256.txt
+          ls -lh Radio-Palavra-Antiga-1.1.10-Play.aab
 
       - name: Upload signed Play AAB
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-retoma-1.1.9'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-reabertura-1.1.10'
         uses: actions/upload-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-1.1.9-Play-AAB
+          name: Radio-Palavra-Antiga-1.1.10-Play-AAB
           path: |
-            Radio-Palavra-Antiga-1.1.9-Play.aab
+            Radio-Palavra-Antiga-1.1.10-Play.aab
             AAB-SHA256.txt
             AAB-CERTIFICATE.txt
           if-no-files-found: error
           retention-days: 7
 
       - name: Prepare release APK for Android startup check
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-retoma-1.1.9'
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-reabertura-1.1.10'
         run: |
           curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o /tmp/bundletool.jar
           keytool -genkeypair -keystore /tmp/emulator-test.jks -storepass android -keypass android -alias emulator-test -keyalg RSA -keysize 2048 -validity 30 -dname "CN=Android Emulator Test"
-          java -jar /tmp/bundletool.jar build-apks --bundle=Radio-Palavra-Antiga-1.1.9-Play.aab --output=/tmp/release.apks --mode=universal --ks=/tmp/emulator-test.jks --ks-key-alias=emulator-test --ks-pass=pass:android --key-pass=pass:android
+          java -jar /tmp/bundletool.jar build-apks --bundle=Radio-Palavra-Antiga-1.1.10-Play.aab --output=/tmp/release.apks --mode=universal --ks=/tmp/emulator-test.jks --ks-key-alias=emulator-test --ks-pass=pass:android --key-pass=pass:android
           unzip -p /tmp/release.apks universal.apk > /tmp/release.apk
 
-      - name: Set up Android 13 emulator
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-retoma-1.1.9'
-        timeout-minutes: 7
+
+  verify-reopen:
+    needs: build-debug-apk
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Radio-Palavra-Antiga-1.1.10-Play-AAB
+          path: aab
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      - name: Prepare release APK for Android checks
         run: |
-          sudo chmod 666 /dev/kvm
-          sdkmanager 'emulator' 'system-images;android-33;google_apis;x86_64'
-          export ANDROID_USER_HOME="$RUNNER_TEMP/rpa-android"
-          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
-          mkdir -p "$ANDROID_AVD_HOME"
-          echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --path "$ANDROID_AVD_HOME/rpa-startup.avd" --force
-          printf 'avd.ini.encoding=UTF-8\npath=%s\n' "$ANDROID_AVD_HOME/rpa-startup.avd" > "$ANDROID_AVD_HOME/rpa-startup.ini"
-          "$ANDROID_HOME/emulator/emulator" -list-avds
-          "$ANDROID_HOME/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/emulator.log 2>&1 &
-          timeout 120 adb wait-for-device || { cat /tmp/emulator.log; exit 1; }
-          for attempt in {1..90}; do
-            if [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; then break; fi
-            sleep 2
-          done
-          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
-          adb shell input keyevent 82
-
+          curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o /tmp/bundletool.jar
+          keytool -genkeypair -keystore /tmp/emulator-test.jks -storepass android -keypass android -alias emulator-test -keyalg RSA -keysize 2048 -validity 30 -dname "CN=Android Emulator Test"
+          java -jar /tmp/bundletool.jar build-apks --bundle=aab/Radio-Palavra-Antiga-1.1.10-Play.aab --output=/tmp/release.apks --mode=universal --ks=/tmp/emulator-test.jks --ks-key-alias=emulator-test --ks-pass=pass:android --key-pass=pass:android
+          unzip -p /tmp/release.apks universal.apk > /tmp/release.apk
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Install visual test dependency
-        run: python3 -m pip install pillow
-
-      - name: Verify release startup on Android 13
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/fix/menu-retoma-1.1.9'
-        run: bash ci/check_android_startup.sh /tmp/release.apk verify
-
-      - name: Verify menu after background and screen lock
-        run: python3 ci/check_android_menu_resume.py
-
-      - name: Upload Android startup evidence
+        run: python3 -m pip install Pillow==13.0.0
+      - name: Enable KVM
+        run: sudo chmod 666 /dev/kvm
+      - name: Verify close and reopen while audio continues on Android 13
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          cores: 2
+          ram-size: 2048M
+          emulator-boot-timeout: 240
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          disable-animations: true
+          script: |
+            bash ci/check_android_startup.sh /tmp/release.apk verify
+            python3 ci/check_android_menu_resume.py
+      - name: Upload Android evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: RPA-1.1.9-release-startup-evidence
+          name: RPA-1.1.10-menu-reopen-evidence
           path: startup-evidence/
           if-no-files-found: warn
-          retention-days: 7
-
+          retention-days: 14

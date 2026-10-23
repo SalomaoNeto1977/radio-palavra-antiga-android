@@ -1,5 +1,15 @@
 # Rádio Palavra Antiga Android
 
+## Correção validada e enviada para produção — 1.1.10+21
+
+Ao fechar a janela com o áudio ainda ativo e reabrir pelo ícone ou pela Play Store, a 1.1.9 podia manter os botões do menu a receber toques enquanto a camada Flutter ficava invisível, incluindo Conta. A 1.1.10 recria a interface do telefone quando a Activity anterior é destruída e apresenta a WebView através de uma textura, evitando a composição antiga com superfícies Flutter sobrepostas. O serviço de áudio e os controladores permanecem fora dessa interface.
+
+A análise e os **88 testes Flutter, 26 testes JavaScript e 5 testes Python** passaram. O APK de teste e o AAB assinado foram compilados e validados no [ensaio 39995515253](https://github.com/SalomaoNeto1977/radio-palavra-antiga-android/actions/runs/39995515253), a partir de `2a792f2ae2a640360ed9b0382aada64da5a466b9`. Os testes de ciclo de vida distinguem segundo plano de destruição da janela, incluindo reabertura sem um frame intermédio.
+
+A verificação Android foi alargada para conferir áudio contínuo, menu e Conta após fechar e reabrir a Activity. No emulador Android 13, a captura inicial mostra o menu visível, mas a ligação ADB ficou offline antes de completar o arranque e executar os ciclos de reabertura. **Esta validação automática não ficou concluída**. Depois de atualizar pelos testes internos, o utilizador confirmou num telefone real: «Agora está a funcionar perfeitamente», e autorizou a publicação pública em 23/10/2026.
+
+A versão **1.1.10+21** foi disponibilizada nos testes internos e, após essa confirmação física, o mesmo pacote foi promovido e enviado para **produção em 23/10/2026**, lançamento «1.1.10 — Reabertura com áudio ativo». A Play Console confirmou **«Alterações em revisão»**, com verificações rápidas ainda em curso. A implementação está definida para **100%** dos utilizadores nos países já selecionados e a publicação gerida está desativada, pelo que a atualização será publicada automaticamente após aprovação. O envio não confirma disponibilidade pública. O AAB aprovado não foi recompilado nem alterado e tem SHA-256 `4794bb1726885fc9fddf2d5da58af4907e7f07f095541ad8b41bf31a6379f3e5`.
+
 Aplicação Android oficial da Rádio Cristã Portuguesa Palavra Antiga. A versão **1.1.9+20** foi testada pelo utilizador e enviada à Google Play em **23/10/2026**.
 
 No telefone, a app mantém os destinos **Rádio | Música | Conta | WhatsApp**. A interface web é apresentada numa WebView; a emissão, a biblioteca, a MediaSession e o Android Auto usam o serviço de áudio nativo.

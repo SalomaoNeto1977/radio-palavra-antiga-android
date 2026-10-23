@@ -18,8 +18,7 @@ class MainActivity : AudioServiceActivity() {
     }
 
     private fun redrawPhoneWindow() {
-        // The Flutter canvas and the hybrid WebView have separate Android
-        // surfaces. Invalidate their parent after Android restores the window.
+        // Recalculate Android insets and layout after the window is restored.
         val root = window.decorView
         root.post {
             if (!isFinishing && !isDestroyed && hasWindowFocus()) {
