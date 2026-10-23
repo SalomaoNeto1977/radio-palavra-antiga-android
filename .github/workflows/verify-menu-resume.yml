@@ -1,0 +1,92 @@
+name: Verify Radio Palavra Antiga 1.1.9 menu resume
+
+on:
+  push:
+    branches: [fix/menu-retoma-1.1.9]
+    paths:
+      - 'ci/check_android_menu_resume.py'
+      - '.github/workflows/verify-menu-resume.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify-release-menu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tested application source is unchanged
+        run: git diff --exit-code bfcb0018cc4a9860e491723cf882e6696afd73dd HEAD -- source-overrides/lib source-overrides/android source-overrides/pubspec.yaml ci/rpa106-nav-source.tar.xz.b64
+
+      - name: Download the already compiled and signed AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: Radio-Palavra-Antiga-1.1.9-Play-AAB
+          run-id: 39874168182
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: aab
+
+      - name: Verify AAB digest
+        working-directory: aab
+        run: sha256sum -c AAB-SHA256.txt
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Prepare release APK for Android checks
+        run: |
+          curl -fL https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar -o /tmp/bundletool.jar
+          keytool -genkeypair -keystore /tmp/emulator-test.jks -storepass android -keypass android -alias emulator-test -keyalg RSA -keysize 2048 -validity 30 -dname "CN=Android Emulator Test"
+          java -jar /tmp/bundletool.jar build-apks --bundle=aab/Radio-Palavra-Antiga-1.1.9-Play.aab --output=/tmp/release.apks --mode=universal --ks=/tmp/emulator-test.jks --ks-key-alias=emulator-test --ks-pass=pass:android --key-pass=pass:android
+          unzip -p /tmp/release.apks universal.apk > /tmp/release.apk
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install visual test dependency
+        run: python3 -m pip install pillow
+
+      - name: Enable KVM
+        run: sudo chmod 666 /dev/kvm
+
+      - name: Verify release menu on Android 13
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          cores: 2
+          ram-size: 2048M
+          emulator-boot-timeout: 240
+          emulator-options: -no-window -gpu swangle -no-snapshot -noaudio -no-boot-anim -camera-back none -feature -Vulkan
+          disable-animations: true
+          script: |
+            bash ci/check_android_startup.sh /tmp/release.apk verify
+            python3 ci/check_android_menu_resume.py
+
+      - name: Upload Android menu evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RPA-1.1.9-menu-resume-evidence
+          path: startup-evidence/
+          if-no-files-found: warn
+          retention-days: 14
+

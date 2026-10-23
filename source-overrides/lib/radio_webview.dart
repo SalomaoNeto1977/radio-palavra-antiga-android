@@ -16,6 +16,7 @@ import 'app_restart.dart';
 import 'notification_permission_service.dart';
 import 'official_playlist_catalog_service.dart';
 import 'offline_player.dart';
+import 'persistent_navigation_bar.dart';
 import 'radio_player_controller.dart';
 import 'supporter_subscription.dart';
 import 'supporter_subscription_sheet.dart';
@@ -578,39 +579,11 @@ class _RadioWebViewState extends State<RadioWebView>
               )),
           ],
         ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: NavigationBar(
-            height: 60,
-            selectedIndex: _selectedDestination,
-            onDestinationSelected: (int destination) {
-              unawaited(_selectDestination(destination));
-            },
-            backgroundColor: const Color(0xFFFFFBF5),
-            indicatorColor: const Color(0xFFEBC9A4),
-            destinations: <NavigationDestination>[
-              const NavigationDestination(
-                icon: Icon(Icons.radio_outlined),
-                selectedIcon: Icon(Icons.radio),
-                label: 'Rádio',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.library_music_outlined),
-                selectedIcon: Icon(Icons.library_music),
-                label: 'Música',
-              ),
-              const NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Conta',
-              ),
-              const NavigationDestination(
-                icon: Icon(Icons.chat_outlined),
-                selectedIcon: Icon(Icons.chat),
-                label: 'WhatsApp',
-              ),
-            ],
-          ),
+        bottomNavigationBar: PersistentNavigationBar(
+          selectedIndex: _selectedDestination,
+          onDestinationSelected: (int destination) {
+            unawaited(_selectDestination(destination));
+          },
         ),
       ),
     );
@@ -627,3 +600,4 @@ class _RadioWebViewState extends State<RadioWebView>
     super.dispose();
   }
 }
+
