@@ -56,6 +56,8 @@ void main() {
         AppLifecycleState.inactive,
         AppLifecycleState.hidden,
         AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
         AppLifecycleState.resumed,
       ]) {
         tester.binding.handleAppLifecycleStateChanged(state);
@@ -87,7 +89,13 @@ void main() {
         for (int cycle = 1; cycle <= 3; cycle += 1) {
           await tester.enterText(find.byType(TextField), 'Old Activity');
           final Element oldView = tester.element(find.byType(TextField));
-          tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+          for (final AppLifecycleState state in <AppLifecycleState>[
+            AppLifecycleState.inactive,
+            AppLifecycleState.hidden,
+            AppLifecycleState.paused,
+          ]) {
+            tester.binding.handleAppLifecycleStateChanged(state);
+          }
           tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
           if (frameWhileDetached) {
             await tester.pump();
