@@ -59,13 +59,16 @@ jobs:
         run: |
           sudo chmod 666 /dev/kvm
           sdkmanager 'emulator' 'system-images;android-33;google_apis;x86_64'
+          curl -fL https://dl.google.com/android/repository/emulator-linux_x64-14472402.zip -o /tmp/emulator-36.zip
+          echo 'c8ab9ffbc4c2d11c02e06e81a9d9f81970177dc5ab599e3a30eb08a4a5496a67  /tmp/emulator-36.zip' | sha256sum -c -
+          unzip -q /tmp/emulator-36.zip -d "$RUNNER_TEMP/rpa-emulator"
           export ANDROID_USER_HOME="$RUNNER_TEMP/rpa-android"
           export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
           mkdir -p "$ANDROID_AVD_HOME"
           echo no | avdmanager create avd -n rpa-startup -k 'system-images;android-33;google_apis;x86_64' --path "$ANDROID_AVD_HOME/rpa-startup.avd" --force
           printf 'avd.ini.encoding=UTF-8\npath=%s\n' "$ANDROID_AVD_HOME/rpa-startup.avd" > "$ANDROID_AVD_HOME/rpa-startup.ini"
-          "$ANDROID_HOME/emulator/emulator" -list-avds
-          "$ANDROID_HOME/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/emulator.log 2>&1 &
+          "$RUNNER_TEMP/rpa-emulator/emulator/emulator" -list-avds
+          "$RUNNER_TEMP/rpa-emulator/emulator/emulator" -avd rpa-startup -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -feature -Vulkan -memory 1536 -cores 2 > /tmp/emulator.log 2>&1 &
           timeout 120 adb wait-for-device || { cat /tmp/emulator.log; exit 1; }
           for attempt in {1..90}; do
             if [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == 1 ]]; then break; fi
@@ -73,7 +76,6 @@ jobs:
           done
           test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
           adb shell input keyevent 82
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

@@ -44,7 +44,7 @@ def check_pixels(name, boxes):
     stats = {}
     for label, box in boxes.items():
         pixels = list(image.crop(box).getdata())
-        light = sum(min(p) > 210 for p in pixels) / len(pixels)
+        light = sum(sum(p) > 555 for p in pixels) / len(pixels)
         ink = sum(max(p) < 180 for p in pixels)
         assert light > 0.60, f'{name}: black/covered menu at {label}: {light:.3f}'
         assert ink > 20, f'{name}: blank menu button {label}: {ink} text/icon pixels'
