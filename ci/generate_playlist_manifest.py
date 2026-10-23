@@ -2,17 +2,19 @@
 """Generate the public station-playlist manifest embedded in the Android app.
 
 The AzuraCast API key is read only from the environment and is never written to
-the generated file.  The output contains only playlist names and public
-On-Demand track identifiers.
+the generated file. The output contains playlist names, public On-Demand
+track identifiers and exported album-art URLs.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import sys
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
@@ -266,6 +268,9 @@ def fetch_all_rows(
 
 
 COVERS_BASE_URL = "https://raw.githubusercontent.com/SalomaoNeto1977/radio-palavra-antiga-android/main/catalog/covers"
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".avif"}
+MAX_COVER_BYTES = 20 * 1024 * 1024
+MAX_COVER_PIXELS = 25_000_000
 
 
 class NoCoverRedirects(HTTPRedirectHandler):
@@ -273,29 +278,94 @@ class NoCoverRedirects(HTTPRedirectHandler):
         return None
 
 
-def fetch_folder_cover(base_url: str, station: str, folder: str, api_key: str) -> bytes | None:
-    """Read only cover.jpg; never forward the private key to a redirect target."""
-    filename = str(PurePosixPath(folder) / "cover.jpg")
+def folder_image_candidates(rows: Any, folder: str) -> list[str]:
+    """Newest image first, regardless of its name; stay in the album folder."""
+    parent = PurePosixPath(folder)
+    candidates: dict[str, int] = {}
+    for row in response_rows(rows):
+        raw_path = str(row.get("path") or "")
+        path = PurePosixPath(raw_path)
+        if (not raw_path or path.is_absolute() or ".." in path.parts
+                or "\\" in raw_path or path.parent != parent
+                or path.name.startswith(".") or is_true(row.get("is_dir"))
+                or row.get("type") == "directory"
+                or path.suffix.casefold() not in IMAGE_EXTENSIONS):
+            continue
+        try:
+            modified = int(row.get("timestamp") or 0)
+        except (ValueError, TypeError, OverflowError):
+            modified = 0
+        candidates[raw_path] = modified
+    return sorted(candidates, key=lambda path: (-candidates[path], path.casefold(), path))
+
+
+def normalize_cover(data: bytes) -> bytes | None:
+    """Decode real raster images and export a compact JPEG without metadata."""
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    if not data or len(data) > MAX_COVER_BYTES:
+        return None
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(data), formats=[
+                "JPEG", "PNG", "WEBP", "GIF", "BMP", "TIFF", "AVIF",
+            ]) as source:
+                if source.width * source.height > MAX_COVER_PIXELS:
+                    return None
+                # Animated images use their first frame, just like a CD cover.
+                image = ImageOps.exif_transpose(source)
+                image.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+                rgba = image.convert("RGBA")
+                flattened = Image.new("RGB", rgba.size, "white")
+                flattened.paste(rgba, mask=rgba.getchannel("A"))
+                output = io.BytesIO()
+                flattened.save(output, format="JPEG", quality=90, optimize=True)
+                return output.getvalue()
+    except (UnidentifiedImageError, OSError, ValueError,
+            Image.DecompressionBombError, Image.DecompressionBombWarning):
+        return None
+
+
+def fetch_cover_image(base_url: str, station: str, filename: str, api_key: str) -> bytes | None:
+    """Download from the station only, never forwarding a key to redirects."""
     request = Request(
         base_url.rstrip("/") + f"/api/station/{station}/files/download?file=" + quote(filename, safe=""),
-        headers={"X-API-Key": api_key, "Accept": "image/jpeg"},
+        headers={"X-API-Key": api_key, "Accept": "image/*, application/octet-stream"},
     )
     try:
         with build_opener(NoCoverRedirects()).open(request, timeout=12) as response:
-            data = response.read(5 * 1024 * 1024 + 1)
-            if response.headers.get_content_type() != "image/jpeg":
-                return None
-        if len(data) > 5 * 1024 * 1024 or not data.startswith(b"\xff\xd8\xff") or not data.rstrip().endswith(b"\xff\xd9"):
-            return None
-        if api_key.encode() in data:
+            data = response.read(MAX_COVER_BYTES + 1)
+        if api_key and api_key.encode() in data:
             raise ManifestError("A imagem contém dados privados.")
-        return data
+        # Download endpoints can use application/octet-stream even for a PNG.
+        return normalize_cover(data)
     except HTTPError as error:
         if error.code in (401, 403):
             raise ManifestError("Sem permissão para ler as capas da estação.") from None
-        return None
+        if error.code == 404:
+            return None
+        raise ManifestError("O servidor não permitiu descarregar uma capa.") from None
     except (URLError, TimeoutError, OSError):
-        return None
+        raise ManifestError("Não foi possível descarregar uma capa; o catálogo anterior mantém-se.") from None
+
+
+def fetch_folder_cover(base_url: str, station: str, folder: str, api_key: str) -> bytes | None:
+    """Use the newest valid image in the folder, with no required filename."""
+    directory = "" if folder == "." else folder
+    try:
+        rows = fetch_all_rows(
+            base_url,
+            f"/api/station/{station}/files/list?currentDirectory=" + quote(directory, safe=""),
+            api_key,
+        )
+    except ManifestError:
+        raise ManifestError("Não foi possível listar as imagens das pastas; o catálogo anterior mantém-se.") from None
+    for filename in folder_image_candidates(rows, folder):
+        data = fetch_cover_image(base_url, station, filename, api_key)
+        if data is not None:
+            return data
+    return None
 
 
 def attach_folder_covers(manifest: dict[str, Any], media: Any, base_url: str,
@@ -310,11 +380,13 @@ def attach_folder_covers(manifest: dict[str, Any], media: Any, base_url: str,
             continue
         folders[track_id] = str(path.parent)
     downloaded: dict[str, str | None] = {}
+    mixed_folders = 0
     for playlist in manifest["playlists"]:
         if playlist.get("is_fallback"):
             continue
         track_folders = {folders.get(t) for t in playlist["track_ids"]}
         if len(track_folders) != 1 or None in track_folders:
+            mixed_folders += 1
             continue
         folder = next(iter(track_folders))
         if folder not in downloaded:
@@ -327,6 +399,9 @@ def attach_folder_covers(manifest: dict[str, Any], media: Any, base_url: str,
                 downloaded[folder] = COVERS_BASE_URL + "/" + digest + ".jpg"
         if downloaded[folder]:
             playlist["cover_url"] = downloaded[folder]
+    covered = sum(bool(p.get("cover_url")) for p in manifest["playlists"])
+    print(f"Capas de pasta preparadas: {covered} álbuns; "
+          f"{len(downloaded)} pastas verificadas; {mixed_folders} playlists com pastas diferentes ou desconhecidas.")
 
 
 def write_manifest(path: Path, manifest: dict[str, Any]) -> None:
@@ -397,3 +472,4 @@ def main(argv: Iterable[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

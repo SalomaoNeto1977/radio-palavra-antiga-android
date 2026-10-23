@@ -7,6 +7,8 @@ on:
     paths:
       - 'ci/generate_playlist_manifest.py'
       - 'ci/tests/test_generate_playlist_manifest.py'
+      - 'ci/tests/test_folder_covers.py'
+      - 'ci/requirements-catalog.txt'
       - '.github/workflows/update-playlist-catalog.yml'
   schedule:
     - cron: '17 * * * *'
@@ -27,7 +29,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Test catalog generator
-        run: python3 -m unittest discover -s ci/tests -p 'test_*.py' -v
+        run: |
+          python3 -m pip install --requirement ci/requirements-catalog.txt
+          python3 -m unittest discover -s ci/tests -p 'test_*.py' -v
 
       - name: Generate safe public catalog
         env:
@@ -98,3 +102,4 @@ jobs:
           git commit -m 'Update public playlist catalog'
           git pull --rebase origin main
           git push origin HEAD:main
+
