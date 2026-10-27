@@ -102,10 +102,10 @@ jobs:
           system-image-api-level: 35-ext15
           target: android-automotive
           arch: x86_64
-          profile: automotive_1408p_landscape
           ram-size: 4096M
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          pre-emulator-launch-script: python3 automotive/ci/configure-avd.py
           script: |
             mkdir -p car-verification
             adb install packages/Radio-Palavra-Antiga-Automotive-1.2.0-teste.apk
