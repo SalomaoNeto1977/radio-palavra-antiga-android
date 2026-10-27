@@ -57,10 +57,10 @@ public final class RadioLibraryService extends MediaLibraryService {
 
     @Override public void onCreate() {
         super.onCreate();
-        currentArtwork = resourceArtwork("station_logo");
+        currentArtwork = resourceArtwork("station_artwork");
         cachedArtwork = currentArtwork;
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
-                .setUserAgent("RadioPalavraAntiga-Automotive/1.2.0")
+                .setUserAgent("RadioPalavraAntiga-Automotive/1.2.1")
                 .setConnectTimeoutMs(10000).setReadTimeoutMs(20000)
                 .setAllowCrossProtocolRedirects(false);
         engine = new ExoPlayer.Builder(this)
@@ -153,7 +153,7 @@ public final class RadioLibraryService extends MediaLibraryService {
                 .setDisplayTitle(metadata == null ? RadioCatalog.NAME : metadata.title)
                 .setIsBrowsable(false).setIsPlayable(true)
                 .setMediaType(MediaMetadata.MEDIA_TYPE_RADIO_STATION);
-        description.setArtworkUri(metadata == null ? resourceArtwork("station_logo") : currentArtwork);
+        description.setArtworkUri(metadata == null ? resourceArtwork("station_artwork") : currentArtwork);
         return new MediaItem.Builder().setMediaId(RadioCatalog.LIVE)
                 .setUri(RadioCatalog.STREAM).setMediaMetadata(description.build()).build();
     }
@@ -236,7 +236,7 @@ public final class RadioLibraryService extends MediaLibraryService {
                 main.post(() -> applyMetadata(value, null, generation));
                 Uri image = cachedArtwork;
                 if (value.artwork.isEmpty()) {
-                    image = resourceArtwork("station_logo");
+                    image = resourceArtwork("station_artwork");
                     artworkUrl = "";
                 } else if (!value.artwork.equals(artworkUrl)
                         || System.currentTimeMillis() - artworkFetchedAt > 60000) {
@@ -278,7 +278,7 @@ public final class RadioLibraryService extends MediaLibraryService {
             connection.setConnectTimeout(8000);
             connection.setReadTimeout(8000);
             connection.setInstanceFollowRedirects(false);
-            connection.setRequestProperty("User-Agent", "RadioPalavraAntiga-Automotive/1.2.0");
+            connection.setRequestProperty("User-Agent", "RadioPalavraAntiga-Automotive/1.2.1");
             try {
                 int status = connection.getResponseCode();
                 if (status >= 300 && status < 400) {

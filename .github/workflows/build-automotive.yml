@@ -64,16 +64,16 @@ jobs:
           fi
           keytool -printcert -jarfile "${AAB}" |
             grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57'
-          cp "${APK}" Radio-Palavra-Antiga-Automotive-1.2.0-teste.apk
-          cp "${AAB}" Radio-Palavra-Antiga-Automotive-1.2.0-Play.aab
-          sha256sum Radio-Palavra-Antiga-Automotive-1.2.0-* > automotive-SHA256.txt
+          cp "${APK}" Radio-Palavra-Antiga-Automotive-1.2.1-teste.apk
+          cp "${AAB}" Radio-Palavra-Antiga-Automotive-1.2.1-Play.aab
+          sha256sum Radio-Palavra-Antiga-Automotive-1.2.1-* > automotive-SHA256.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Radio-Palavra-Antiga-Automotive-1.2.0
+          name: Radio-Palavra-Antiga-Automotive-1.2.1
           path: |
-            Radio-Palavra-Antiga-Automotive-1.2.0-teste.apk
-            Radio-Palavra-Antiga-Automotive-1.2.0-Play.aab
+            Radio-Palavra-Antiga-Automotive-1.2.1-teste.apk
+            Radio-Palavra-Antiga-Automotive-1.2.1-Play.aab
             automotive-SHA256.txt
             automotive-manifest.txt
             automotive/app/build/reports/
@@ -92,7 +92,7 @@ jobs:
           java-version: '17'
       - uses: actions/download-artifact@v4
         with:
-          name: Radio-Palavra-Antiga-Automotive-1.2.0
+          name: Radio-Palavra-Antiga-Automotive-1.2.1
           path: packages
       - name: Allow this runner to use hardware acceleration
         run: sudo setfacl -m u:runner:rw /dev/kvm
@@ -108,7 +108,7 @@ jobs:
           pre-emulator-launch-script: python3 automotive/ci/configure-avd.py
           script: |
             mkdir -p car-verification
-            adb install packages/Radio-Palavra-Antiga-Automotive-1.2.0-teste.apk
+            adb install packages/Radio-Palavra-Antiga-Automotive-1.2.1-teste.apk
             adb install packages/automotive/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w -e screenshotLabel landscape org.palavraantiga.radio.automotive.debug.test/androidx.test.runner.AndroidJUnitRunner | tee car-verification/instrumentation-landscape.txt
             grep -q 'OK (1 test)' car-verification/instrumentation-landscape.txt

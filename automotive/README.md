@@ -2,7 +2,9 @@
 
 Versão própria para instalação direta em veículos com Android Automotive OS e Google Play, como os Polestar compatíveis. O pacote mantém o identificador `org.palavraantiga.radio`, usa a assinatura de envio existente e destina-se exclusivamente ao canal Android Automotive OS. A app de telefone e o seu Android Auto continuam na versão 1.1.10.
 
-Esta primeira versão oferece a emissão em direto, título, intérprete e capa da emissão, controlos do leitor do carro e pesquisa pelo nome da rádio. O automóvel apresenta a interface através de MediaLibraryService e MediaSession. Não é necessário iniciar sessão. O módulo não contém Activity, WebView, compras ou comandos Bluetooth do telefone. Usa uma instância de ExoPlayer, com gestão de foco de áudio pelo Media3 e recuperação após falhas de rede. Uma pausa manual cancela as tentativas de recuperação.
+A versão 1.2.1 inclui a imagem dourada da Rádio sobre a Bíblia como capa predefinida da estação, preservando as capas próprias das músicas. A imagem fornecida é incluída sem recorte ou alteração em `automotive/assets/station-artwork.jpg`.
+
+A app oferece a emissão em direto, título, intérprete e capa da emissão, controlos do leitor do carro e pesquisa pelo nome da rádio. O automóvel apresenta a interface através de MediaLibraryService e MediaSession. Não é necessário iniciar sessão. O módulo não contém Activity, WebView, compras ou comandos Bluetooth do telefone. Usa uma instância de ExoPlayer, com gestão de foco de áudio pelo Media3 e recuperação após falhas de rede. Uma pausa manual cancela as tentativas de recuperação.
 
 ## Compilação
 
@@ -18,7 +20,7 @@ O lançamento exige as variáveis de assinatura existentes `RPA_STORE_FILE`, `RP
 gradle -p automotive bundleRelease
 ```
 
-A versão automóvel é 1.2.0, código 1200001. Reservar os códigos a partir de 1200001 para AAOS e manter únicos os códigos das próximas versões para telefone. O pacote de depuração tem o identificador `org.palavraantiga.radio.automotive.debug`.
+A versão automóvel é 1.2.1, código 1200002. A versão 1.2.0 foi publicada em testes internos a 27/10/2026, com a lista dos 34 testadores da Rádio associada. Reservar os códigos a partir de 1200001 para AAOS e manter únicos os códigos das próximas versões para telefone. O pacote de depuração tem o identificador `org.palavraantiga.radio.automotive.debug`.
 
 ## Validação e publicação
 

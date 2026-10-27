@@ -8,8 +8,8 @@ android {
         minSdk 28
         targetSdk 36
         // Reserved range for the dedicated AAOS track; mobile keeps its own version codes.
-        versionCode 1200001
-        versionName '1.2.0'
+        versionCode 1200002
+        versionName '1.2.1'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     compileOptions {
@@ -41,8 +41,9 @@ android {
 
 def stationAssets = tasks.register('generateStationAssets') {
     def source = file("${rootDir}/../build-assets/debug-icon.png.b64")
+    def artworkSource = file("${rootDir}/assets/station-artwork.jpg")
     def target = layout.buildDirectory.dir('generated/station-res')
-    inputs.file source
+    inputs.files source, artworkSource
     outputs.dir target
     doLast {
         def logo = new File(target.get().asFile, 'drawable/station_logo.png')
@@ -51,6 +52,13 @@ def stationAssets = tasks.register('generateStationAssets') {
         def rawLogo = new File(target.get().asFile, 'raw/station_logo.png')
         rawLogo.parentFile.mkdirs()
         rawLogo.bytes = logo.bytes
+        // Full station artwork is separate from the small application icon.
+        def artwork = new File(target.get().asFile, 'drawable-nodpi/station_artwork.jpg')
+        artwork.parentFile.mkdirs()
+        artwork.bytes = artworkSource.bytes
+        def rawArtwork = new File(target.get().asFile, 'raw/station_artwork.jpg')
+        rawArtwork.parentFile.mkdirs()
+        rawArtwork.bytes = artworkSource.bytes
     }
 }
 tasks.named('preBuild').configure { dependsOn stationAssets }

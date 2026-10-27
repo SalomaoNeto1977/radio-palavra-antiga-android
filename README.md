@@ -1,12 +1,14 @@
 # Rádio Palavra Antiga Android
 
-## Android Automotive OS — versão 1.2.0
+## Android Automotive OS — versão 1.2.1
 
 O módulo independente [automotive](automotive/README.md) prepara a instalação direta em carros com Android Automotive OS e Google Play. O leitor do veículo apresenta o separador **Em direto**, a emissão da Rádio, título, intérprete e capa. O módulo usa Media3 e uma única instância de ExoPlayer, com foco de áudio, recuperação após falhas de rede e cancelamento da recuperação ao pausar. Não exige iniciar sessão.
 
-O pacote automóvel mantém o identificador `org.palavraantiga.radio` e a chave de envio existente, com versão 1.2.0 e código 1200001. A app de telefone permanece na versão 1.1.10.
+O pacote automóvel mantém o identificador `org.palavraantiga.radio` e a chave de envio existente, com versão 1.2.1 e código 1200002. A app de telefone permanece na versão 1.1.10.
 
-Os 17 testes de políticas, metadados e serviço passaram, a inspeção Android terminou sem erros e foram gerados o APK e o AAB assinado. O ensaio no Android Automotive API 35-ext15 confirmou catálogo, separador visível, reprodução da emissão real e pausa, em horizontal e vertical. O [ensaio de validação](https://github.com/SalomaoNeto1977/radio-palavra-antiga-android/actions/runs/40532185963) reúne os pacotes, relatórios e capturas.
+A versão 1.2.0 foi publicada em testes internos a 27/10/2026, com 34 testadores associados. A atualização 1.2.1 acrescenta a imagem dourada fornecida pelo responsável da Rádio como capa predefinida da estação; as capas próprias das músicas mantêm-se.
+
+Na validação da versão 1.2.0, os 17 testes de políticas, metadados e serviço passaram, a inspeção Android terminou sem erros e foram gerados o APK e o AAB assinado. O ensaio no Android Automotive API 35-ext15 confirmou catálogo, separador visível, reprodução da emissão real e pausa, em horizontal e vertical. O [ensaio de validação](https://github.com/SalomaoNeto1977/radio-palavra-antiga-android/actions/runs/40532185963) reúne os pacotes, relatórios e capturas.
 
 A versão automóvel **ainda não foi enviada à Google Play**. Falta concluir o formato, a ficha e o teste próprio na Play Console. O acesso à consola ficou bloqueado pela revisão automática de segurança do navegador nesta sessão. Um ensaio num Polestar físico continua por realizar.
 
