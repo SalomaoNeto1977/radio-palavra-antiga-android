@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,9 +14,11 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class ArtworkProviderTest {
     private Context context;
     private ArtworkProvider provider;
@@ -38,8 +39,7 @@ public class ArtworkProviderTest {
         Uri uri = ArtworkProvider.publish(context, image);
         assertEquals("content", uri.getScheme());
         assertEquals("image/png", provider.getType(uri));
-        try (ParcelFileDescriptor fd = provider.openFile(uri, "r");
-                FileInputStream input = new FileInputStream(fd.getFileDescriptor())) {
+        try (InputStream input = new ParcelFileDescriptor.AutoCloseInputStream(provider.openFile(uri, "r"))) {
             assertEquals(0x89, input.read());
         }
         assertThrows(FileNotFoundException.class, () -> provider.openFile(uri, "rw"));
