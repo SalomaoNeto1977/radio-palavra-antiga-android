@@ -1,0 +1,3 @@
+Primeira versão da Rádio Palavra Antiga para carros com Android Automotive OS.
+
+Ouve a emissão em direto no próprio carro, com o título e a capa do que está a tocar, pesquisa pelo nome da Rádio e controlos de reprodução do veículo.

@@ -56,7 +56,7 @@ public final class RadioLibraryService extends MediaLibraryService {
 
     @Override public void onCreate() {
         super.onCreate();
-        try (InputStream input = getResources().openRawResource(R.drawable.station_logo)) {
+        try (InputStream input = getResources().openRawResource(R.raw.station_logo)) {
             defaultArtwork = readBounded(input, 2 * 1024 * 1024);
         } catch (Exception ignored) { defaultArtwork = new byte[0]; }
         currentArtwork = defaultArtwork;

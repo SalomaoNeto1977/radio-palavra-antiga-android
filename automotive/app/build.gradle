@@ -48,6 +48,9 @@ def stationAssets = tasks.register('generateStationAssets') {
         def logo = new File(target.get().asFile, 'drawable/station_logo.png')
         logo.parentFile.mkdirs()
         logo.bytes = Base64.mimeDecoder.decode(source.text)
+        def rawLogo = new File(target.get().asFile, 'raw/station_logo.png')
+        rawLogo.parentFile.mkdirs()
+        rawLogo.bytes = logo.bytes
     }
 }
 tasks.named('preBuild').configure { dependsOn stationAssets }
