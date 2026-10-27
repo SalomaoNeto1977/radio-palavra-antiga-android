@@ -30,7 +30,7 @@ Antes de disponibilizar ao público:
 2. Escolher o canal exclusivo Android Automotive OS e carregar o AAB assinado num teste interno.
 3. Testar no emulador AAOS e, idealmente, num Polestar: instalação, arranque pelo leitor do carro, emissão, capa e título, pausa, comandos no volante, perda e recuperação de rede, interrupção por outra fonte áudio, reinício do sistema e fim da sessão do veículo.
 4. Confirmar que a ligação ao serviço sem uma ordem de reprodução não liga o áudio e que uma pausa manual impede retomas por rede.
-5. Capturar a versão real num emulador genérico, sem marcas de fabricantes: pelo menos duas capturas verticais de 800 × 1280 e duas horizontais de 1024 × 768, conferindo os requisitos atuais que a Play Console apresentar.
+5. Capturar a versão real num emulador genérico, sem marcas de fabricantes: pelo menos duas capturas verticais e duas horizontais, com as dimensões atuais exigidas pela Play Console.
 6. Rever os países, a ficha e a declaração de segurança de dados; aceitar a política de revisão automóvel e submeter a versão para avaliação.
 
 A disponibilidade final depende da aprovação da Google e da compatibilidade de cada veículo. Não se deve anunciar disponibilidade na loja do carro antes da confirmação.
