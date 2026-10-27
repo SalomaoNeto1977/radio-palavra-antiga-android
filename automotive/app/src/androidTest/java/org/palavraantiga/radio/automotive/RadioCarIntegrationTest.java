@@ -11,13 +11,14 @@ import android.media.browse.MediaBrowser;
 import android.media.session.MediaController;
 import android.media.session.PlaybackState;
 import android.util.Log;
+import android.util.Base64;
+import android.os.Bundle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.Until;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -127,13 +128,14 @@ public class RadioCarIntegrationTest {
     }
     private static void screenshot(Context context, String state) throws Exception {
         String label = InstrumentationRegistry.getArguments().getString("screenshotLabel", "landscape");
-        File directory = new File(context.getExternalFilesDir(null), "qa");
-        assertTrue(directory.isDirectory() || directory.mkdirs());
         Bitmap image = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("Screenshot not available", image);
-        try (FileOutputStream file = new FileOutputStream(new File(directory, label + "-" + state + ".png"))) {
-            assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, file));
-        }
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, bytes));
         image.recycle();
+        Bundle report = new Bundle();
+        report.putString("stream", "\nAAOS_SCREENSHOT " + label + "-" + state + ".png "
+                + Base64.encodeToString(bytes.toByteArray(), Base64.NO_WRAP) + "\n");
+        InstrumentationRegistry.getInstrumentation().sendStatus(2, report);
     }
 }

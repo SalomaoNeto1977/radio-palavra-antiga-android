@@ -1,16 +1,26 @@
-"""Copy screenshots from the active AAOS driver without cross-shell variables."""
-import subprocess
+"""Extract PNG attachments emitted by the instrumentation reporting channel."""
+from pathlib import Path
+import base64
+import re
 
-bridge = ["adb", "-s", "emulator-5554"]
-# AAOS driver files are isolated from the shell user. Only elevate adbd on this
-# disposable emulator; never apply this operation to a connected physical car.
-emulated = subprocess.check_output(bridge + ["shell", "getprop", "ro.kernel.qemu"], text=True).strip()
-if emulated != "1":
-    raise RuntimeError("Screenshot collection requires the disposable CI emulator")
-subprocess.run(bridge + ["root"], check=True)
-subprocess.run(bridge + ["wait-for-device"], check=True)
-user = subprocess.check_output(bridge + ["shell", "am", "get-current-user"], text=True).strip()
-if not user.isdigit():
-    raise RuntimeError("The emulator did not return a valid active user")
-source = f"/storage/emulated/{user}/Android/data/org.palavraantiga.radio.automotive.debug/files/qa"
-subprocess.run(bridge + ["pull", source, "car-verification/screenshots"], check=True)
+root = Path("car-verification")
+output = root / "screenshots"
+output.mkdir(exist_ok=True)
+found = set()
+for report in root.glob("instrumentation-*.txt"):
+    for line in report.read_text().splitlines():
+        match = re.fullmatch(
+            r"AAOS_SCREENSHOT ((?:landscape|portrait)-(?:playing|paused)\.png) ([A-Za-z0-9+/=]+)",
+            line.strip(),
+        )
+        if match:
+            data = base64.b64decode(match.group(2), validate=True)
+            if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+                raise RuntimeError("Invalid screenshot attachment")
+            (output / match.group(1)).write_bytes(data)
+            found.add(match.group(1))
+expected = {f"{layout}-{state}.png" for layout in ["landscape", "portrait"]
+            for state in ["playing", "paused"]}
+if found != expected:
+    raise RuntimeError(f"Missing screenshot attachments: {sorted(expected - found)}")
+print("Collected four native AAOS screenshots from the test reports.")
