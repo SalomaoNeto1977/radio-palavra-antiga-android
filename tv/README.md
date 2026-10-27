@@ -1,6 +1,6 @@
 # Rádio Palavra Antiga — Google TV / Android TV
 
-Aplicação nativa para televisão, versão 1.3.0, código 1300001, pacote `org.palavraantiga.radio`.
+Aplicação nativa para televisão, versão 1.3.0, código 1300002, pacote `org.palavraantiga.radio`.
 O módulo independente `tv` destina-se exclusivamente a televisões com Android TV OS e Google Play.
 Usa a chave de envio existente. Os módulos de telefone e automóvel não são modificados.
 

@@ -95,11 +95,33 @@ jobs:
           path: packages
       - name: Allow this runner to use hardware acceleration
         run: sudo setfacl -m u:runner:rw /dev/kvm
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Select an available official TV system image
+        id: tv-image
+        shell: bash
+        run: |
+          sdkmanager --list > sdk-packages.txt
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          packages = set(re.findall(r'system-images;android-(\d+(?:-ext\d+)?);(google-tv|android-tv);(x86_64|x86)', Path('sdk-packages.txt').read_text()))
+          candidates = [p for p in packages if 23 <= int(p[0].split('-')[0]) <= 36]
+          if not candidates:
+              raise RuntimeError('No compatible official TV image available')
+          api, target, arch = max(candidates, key=lambda p: (p[1] == 'google-tv', int(p[0].split('-')[0]), p[2] == 'x86_64', p[0]))
+          print('Selected official TV image:', api, target, arch)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'api={api.split("-")[0]}\nimage_api={api}\ntarget={target}\narch={arch}\n')
+          PY
       - uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
-          target: google-tv
-          arch: x86_64
+          api-level: ${{ steps.tv-image.outputs.api }}
+          system-image-api-level: ${{ steps.tv-image.outputs.image_api }}
+          target: ${{ steps.tv-image.outputs.target }}
+          arch: ${{ steps.tv-image.outputs.arch }}
           profile: tv_1080p
           ram-size: 4096M
           emulator-boot-timeout: 600

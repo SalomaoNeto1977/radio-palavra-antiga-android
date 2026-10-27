@@ -5,9 +5,9 @@ android {
     compileSdk 36
     defaultConfig {
         applicationId 'org.palavraantiga.radio'
-        minSdk 23
+        minSdk 24
         targetSdk 36
-        versionCode 1300001
+        versionCode 1300002
         versionName '1.3.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
