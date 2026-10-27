@@ -1,5 +1,15 @@
 # Rádio Palavra Antiga Android
 
+## Google TV / Android TV — versão 1.3.0
+
+A versão própria para televisão foi enviada para produção a **27/10/2026**, em **178 países/regiões**. A Play Console confirmou **«Lançamento 1.3.0 — Rádio para Google TV em revisão»**, com verificações automáticas ainda em curso e publicação automática após aprovação. O envio não confirma disponibilidade pública. Para acrescentar a TV, a Google reiniciou a revisão conjunta das versões de telefone, automóvel e televisão.
+
+O módulo independente [tv](tv/README.md) usa o mesmo identificador e chave de envio, com versão 1.3.0 e código **1300002**, Android 7.0/API 24 ou posterior e proteção automática da Play. A interface nativa apresenta a emissão, título, intérprete e capa, com botões grandes e navegação por comando. O serviço gere o áudio em segundo plano e os controlos do sistema, sem impedir o modo de ambiente. A escuta é gratuita e não exige conta.
+
+Os **19 testes** e a análise Android passaram; o ensaio completo num **Google TV API 36** confirmou áudio real, navegação, pausa, paragem, Home/regresso e Voltar. Foram capturadas quatro imagens nativas Full HD, e três foram carregadas na ficha. O [ensaio 40580279762](https://github.com/SalomaoNeto1977/radio-palavra-antiga-android/actions/runs/40580279762) valida os pacotes de `b6940e098de0c98ec19ac01ceb28e928bcc53bb0`. Um ensaio numa televisão física continua por realizar.
+
+AAB enviado SHA-256: `b7edfb6d2ba7c2645d080e1e3454a9279fea23d31a73eafe8384d5c41c124f21`. A faixa de testes internos está ativa, com a lista existente de 34 testadores. Os módulos de telefone e automóvel não foram modificados nesta implementação.
+
 ## Android Automotive OS — versão 1.2.1
 
 O módulo independente [automotive](automotive/README.md) prepara a instalação direta em carros com Android Automotive OS e Google Play. O leitor do veículo apresenta o separador **Em direto**, a emissão da Rádio, título, intérprete e capa. O módulo usa Media3 e uma única instância de ExoPlayer, com foco de áudio, recuperação após falhas de rede e cancelamento da recuperação ao pausar. Não exige iniciar sessão.
@@ -10,7 +20,7 @@ A versão 1.2.0 foi publicada em testes internos a 27/10/2026, com 34 testadores
 
 Na validação da versão 1.2.0, os 17 testes de políticas, metadados e serviço passaram, a inspeção Android terminou sem erros e foram gerados o APK e o AAB assinado. O ensaio no Android Automotive API 35-ext15 confirmou catálogo, separador visível, reprodução da emissão real e pausa, em horizontal e vertical. O [ensaio de validação](https://github.com/SalomaoNeto1977/radio-palavra-antiga-android/actions/runs/40532185963) reúne os pacotes, relatórios e capturas.
 
-A versão automóvel **ainda não foi enviada à Google Play**. Falta concluir o formato, a ficha e o teste próprio na Play Console. O acesso à consola ficou bloqueado pela revisão automática de segurança do navegador nesta sessão. Um ensaio num Polestar físico continua por realizar.
+A versão automóvel **1.2.1 foi enviada para produção a 27/10/2026**, em 178 países/regiões, com o estado «Alterações em revisão» confirmado na Play Console. Um ensaio num Polestar físico continua por realizar.
 
 ## Correção validada e enviada para produção — 1.1.10+21
 
