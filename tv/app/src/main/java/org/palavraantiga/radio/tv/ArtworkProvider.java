@@ -13,7 +13,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.security.MessageDigest;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Locale;
 
 /** Exposes only public radio artwork, read-only; no caller-controlled paths or URLs. */
@@ -47,7 +46,7 @@ public final class ArtworkProvider extends ContentProvider {
         }
         File[] files = directory.listFiles((parent, child) -> child.matches("[0-9a-f]{64}\\.img"));
         if (files != null && files.length > 20) {
-            Arrays.sort(files, Comparator.comparingLong((File item) -> item.lastModified()).reversed());
+            Arrays.sort(files, (left, right) -> Long.compare(right.lastModified(), left.lastModified()));
             for (int i = 20; i < files.length; i++) if (!files[i].equals(file)) files[i].delete();
         }
         return new Uri.Builder().scheme("content").authority(context.getPackageName() + ".artwork")
