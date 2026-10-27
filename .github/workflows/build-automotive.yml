@@ -1,0 +1,77 @@
+name: Build Radio Palavra Antiga Android Automotive
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/android-automotive-1.2.0]
+    paths:
+      - 'automotive/**'
+      - '.github/workflows/build-automotive.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  automotive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android API 36
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.6'
+      - name: Restore existing upload key
+        env:
+          RPA_UPLOAD_KEYSTORE_B64: ${{ secrets.RPA_UPLOAD_KEYSTORE_B64 }}
+          RPA_UPLOAD_KEY_PASSWORD: ${{ secrets.RPA_UPLOAD_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${RPA_UPLOAD_KEYSTORE_B64}"
+          test -n "${RPA_UPLOAD_KEY_PASSWORD}"
+          printf '%s' "${RPA_UPLOAD_KEYSTORE_B64}" | base64 --decode > "${RUNNER_TEMP}/radio-upload.jks"
+          keytool -list -keystore "${RUNNER_TEMP}/radio-upload.jks" -storepass:env RPA_UPLOAD_KEY_PASSWORD |
+            grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57'
+      - name: Test, inspect and build AAOS packages
+        env:
+          RPA_STORE_FILE: ${{ runner.temp }}/radio-upload.jks
+          RPA_STORE_PASSWORD: ${{ secrets.RPA_UPLOAD_KEY_PASSWORD }}
+          RPA_KEY_PASSWORD: ${{ secrets.RPA_UPLOAD_KEY_PASSWORD }}
+          RPA_KEY_ALIAS: radio-palavra-antiga
+        run: gradle -p automotive --no-daemon --stacktrace testDebugUnitTest lintRelease assembleDebug bundleRelease
+      - name: Validate automotive packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=automotive/app/build/outputs/apk/debug/app-debug.apk
+          AAB=automotive/app/build/outputs/bundle/release/app-release.aab
+          "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump xmltree "${APK}" AndroidManifest.xml > automotive-manifest.txt
+          grep -q 'android.hardware.type.automotive' automotive-manifest.txt
+          grep -q 'com.android.automotive' automotive-manifest.txt
+          if grep -E 'android.intent.action.MAIN|android.intent.category.LAUNCHER|com.google.android.gms.car.application|android.permission.FOREGROUND_SERVICE' automotive-manifest.txt; then
+            echo '::error::A versão AAOS contém declarações reservadas ao telefone.'
+            exit 1
+          fi
+          keytool -printcert -jarfile "${AAB}" |
+            grep -q 'A6:BD:E8:EC:C2:40:08:FD:FF:A1:8E:0A:6F:FA:D4:B6:15:D5:50:C7:68:21:73:98:BB:15:38:EC:67:DA:6C:57'
+          cp "${APK}" Radio-Palavra-Antiga-Automotive-1.2.0-teste.apk
+          cp "${AAB}" Radio-Palavra-Antiga-Automotive-1.2.0-Play.aab
+          sha256sum Radio-Palavra-Antiga-Automotive-1.2.0-* > automotive-SHA256.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Radio-Palavra-Antiga-Automotive-1.2.0
+          path: |
+            Radio-Palavra-Antiga-Automotive-1.2.0-teste.apk
+            Radio-Palavra-Antiga-Automotive-1.2.0-Play.aab
+            automotive-SHA256.txt
+            automotive-manifest.txt
+            automotive/app/build/reports/
+          retention-days: 14
