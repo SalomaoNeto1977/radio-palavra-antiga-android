@@ -1,0 +1,74 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'org.palavraantiga.radio.automotive'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'org.palavraantiga.radio'
+        minSdk 28
+        targetSdk 36
+        // Reserved range for the dedicated AAOS track; mobile keeps its own version codes.
+        versionCode 1200002
+        versionName '1.2.1'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    def signingReady = ['RPA_STORE_FILE', 'RPA_STORE_PASSWORD', 'RPA_KEY_PASSWORD', 'RPA_KEY_ALIAS']
+        .every { System.getenv(it) }
+    if (signingReady) {
+        signingConfigs {
+            release {
+                storeFile file(System.getenv('RPA_STORE_FILE'))
+                storePassword System.getenv('RPA_STORE_PASSWORD')
+                keyPassword System.getenv('RPA_KEY_PASSWORD')
+                keyAlias System.getenv('RPA_KEY_ALIAS')
+            }
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix '.automotive.debug'; versionNameSuffix '-debug' }
+        release {
+            if (signingReady) signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+    }
+    sourceSets.main.res.srcDir layout.buildDirectory.dir('generated/station-res')
+    testOptions { unitTests.includeAndroidResources = true }
+}
+
+def stationAssets = tasks.register('generateStationAssets') {
+    def source = file("${rootDir}/../build-assets/debug-icon.png.b64")
+    def artworkSource = file("${rootDir}/assets/station-artwork.jpg")
+    def target = layout.buildDirectory.dir('generated/station-res')
+    inputs.files source, artworkSource
+    outputs.dir target
+    doLast {
+        def logo = new File(target.get().asFile, 'drawable/station_logo.png')
+        logo.parentFile.mkdirs()
+        logo.bytes = Base64.mimeDecoder.decode(source.text)
+        def rawLogo = new File(target.get().asFile, 'raw/station_logo.png')
+        rawLogo.parentFile.mkdirs()
+        rawLogo.bytes = logo.bytes
+        // Full station artwork is separate from the small application icon.
+        def artwork = new File(target.get().asFile, 'drawable-nodpi/station_artwork.jpg')
+        artwork.parentFile.mkdirs()
+        artwork.bytes = artworkSource.bytes
+        def rawArtwork = new File(target.get().asFile, 'raw/station_artwork.jpg')
+        rawArtwork.parentFile.mkdirs()
+        rawArtwork.bytes = artworkSource.bytes
+    }
+}
+tasks.named('preBuild').configure { dependsOn stationAssets }
+
+dependencies {
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-session:1.11.1'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16.1'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+}
