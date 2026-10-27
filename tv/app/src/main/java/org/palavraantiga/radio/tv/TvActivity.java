@@ -159,7 +159,12 @@ public final class TvActivity extends Activity {
                         + "para toda a família.\n\nOuvir é gratuito e não exige conta. "
                         + "É necessária uma ligação à Internet.\n\npalavraantiga.org\nradio@palavraantiga.org")
                 .setPositiveButton("Voltar à Rádio", (d, which) -> play.requestFocus()).create();
-        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).requestFocus());
+        dialog.setOnShowListener(d -> {
+            Button back = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            back.setAllCaps(false);
+            back.setFocusableInTouchMode(true);
+            back.requestFocus();
+        });
         dialog.show();
     }
 

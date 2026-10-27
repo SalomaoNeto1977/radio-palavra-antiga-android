@@ -9,14 +9,13 @@ import android.graphics.Bitmap;
 import android.media.browse.MediaBrowser;
 import android.media.session.MediaController;
 import android.media.session.PlaybackState;
-import android.os.Bundle;
-import android.util.Base64;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.Until;
-import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,7 +73,8 @@ public class RadioTvIntegrationTest {
             device.pressDPadRight();
             assertTrue(device.wait(Until.hasObject(By.text("Sobre a Rádio").focused(true)), 5000));
             device.pressDPadCenter();
-            assertTrue(device.wait(Until.hasObject(By.text("Voltar à Rádio").focused(true)), 5000));
+            assertTrue("The dialog's return button must receive remote focus",
+                    device.wait(Until.hasObject(By.text("Voltar à Rádio").focused(true)), 5000));
             screenshot("about");
             device.pressBack();
             assertTrue(device.wait(Until.hasObject(By.text("Sobre a Rádio")), 5000));
@@ -107,12 +107,11 @@ public class RadioTvIntegrationTest {
     private static void screenshot(String state) throws Exception {
         Bitmap image = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull(image);
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, bytes));
-        image.recycle();
-        Bundle report = new Bundle();
-        report.putString("stream", "\nTV_SCREENSHOT " + state + ".png "
-                + Base64.encodeToString(bytes.toByteArray(), Base64.NO_WRAP) + "\n");
-        InstrumentationRegistry.getInstrumentation().sendStatus(2, report);
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        File directory = new File(context.getFilesDir(), "tv-captures");
+        assertTrue(directory.isDirectory() || directory.mkdirs());
+        try (FileOutputStream output = new FileOutputStream(new File(directory, state + ".png"))) {
+            assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, output));
+        } finally { image.recycle(); }
     }
 }
