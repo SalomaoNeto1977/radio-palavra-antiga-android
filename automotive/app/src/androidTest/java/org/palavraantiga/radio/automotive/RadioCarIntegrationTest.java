@@ -13,6 +13,7 @@ import android.media.session.PlaybackState;
 import android.util.Log;
 import android.util.Base64;
 import android.os.Bundle;
+import android.net.Uri;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.By;
@@ -96,6 +97,14 @@ public class RadioCarIntegrationTest {
             assertNotNull("Car did not receive metadata", metadata);
             assertNotNull(metadata.getString(MediaMetadata.METADATA_KEY_TITLE));
             assertFalse(metadata.getString(MediaMetadata.METADATA_KEY_TITLE).trim().isEmpty());
+            Uri artwork = metadata.getDescription().getIconUri();
+            assertNotNull("The car must receive a local artwork URI", artwork);
+            assertTrue("Artwork must use a local content or resource URI",
+                    "content".equals(artwork.getScheme()) || "android.resource".equals(artwork.getScheme()));
+            try (java.io.InputStream input = context.getContentResolver().openInputStream(artwork)) {
+                assertNotNull(input);
+                assertTrue(input.read() >= 0);
+            }
             Log.i("RadioCarTest", "AAOS live playback and metadata confirmed");
             screenshot(context, "playing");
             controller.getTransportControls().pause();

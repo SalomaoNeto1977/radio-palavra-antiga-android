@@ -15,6 +15,11 @@
         <activity android:name="androidx.media3.session.BluetoothValidationActivity"
             tools:node="remove" />
         <meta-data android:name="com.android.automotive" android:resource="@xml/automotive_app_desc" />
+        <provider
+            android:name=".ArtworkProvider"
+            android:authorities="${applicationId}.artwork"
+            android:exported="true"
+            android:grantUriPermissions="true" />
         <service
             android:name=".RadioLibraryService"
             android:exported="true">

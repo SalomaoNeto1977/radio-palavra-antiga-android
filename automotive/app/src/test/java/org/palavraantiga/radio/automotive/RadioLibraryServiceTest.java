@@ -46,6 +46,7 @@ public class RadioLibraryServiceTest {
         MediaItem station = callback.onGetChildren(session, null, RadioCatalog.LIVE_CATEGORY, 0, 10, null).get().value.get(0);
         assertEquals(RadioCatalog.LIVE, station.mediaId);
         assertEquals(Boolean.TRUE, station.mediaMetadata.isPlayable);
+        assertEquals("android.resource", station.mediaMetadata.artworkUri.getScheme());
         assertTrue(callback.onGetChildren(session, null, RadioCatalog.ROOT, 1, 10, null).get().value.isEmpty());
         assertEquals(SessionError.ERROR_BAD_VALUE,
                 callback.onGetChildren(session, null, "unknown", 0, 10, null).get().resultCode);

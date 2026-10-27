@@ -1,8 +1,6 @@
 package org.palavraantiga.radio.automotive;
 
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import androidx.annotation.Nullable;
@@ -49,9 +47,8 @@ public final class RadioLibraryService extends MediaLibraryService {
     private ScheduledFuture<?> polling;
     private volatile boolean destroyed;
     private int pollGeneration;
-    private byte[] defaultArtwork;
-    private byte[] tabArtwork;
-    private volatile byte[] currentArtwork;
+    private Uri currentArtwork;
+    private Uri cachedArtwork;
     private String artworkUrl = "";
     private long artworkFetchedAt;
     private final Runnable reconnect = () -> {
@@ -60,18 +57,8 @@ public final class RadioLibraryService extends MediaLibraryService {
 
     @Override public void onCreate() {
         super.onCreate();
-        try (InputStream input = getResources().openRawResource(R.raw.station_logo)) {
-            defaultArtwork = readBounded(input, 2 * 1024 * 1024);
-        } catch (Exception ignored) { defaultArtwork = new byte[0]; }
-        Drawable icon = getDrawable(R.drawable.ic_live);
-        Bitmap tab = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);
-        icon.setBounds(0, 0, 96, 96);
-        icon.draw(new Canvas(tab));
-        ByteArrayOutputStream tabBytes = new ByteArrayOutputStream();
-        tab.compress(Bitmap.CompressFormat.PNG, 100, tabBytes);
-        tabArtwork = tabBytes.toByteArray();
-        tab.recycle();
-        currentArtwork = defaultArtwork;
+        currentArtwork = resourceArtwork("station_logo");
+        cachedArtwork = currentArtwork;
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                 .setUserAgent("RadioPalavraAntiga-Automotive/1.2.0")
                 .setConnectTimeoutMs(10000).setReadTimeoutMs(20000)
@@ -166,9 +153,7 @@ public final class RadioLibraryService extends MediaLibraryService {
                 .setDisplayTitle(metadata == null ? RadioCatalog.NAME : metadata.title)
                 .setIsBrowsable(false).setIsPlayable(true)
                 .setMediaType(MediaMetadata.MEDIA_TYPE_RADIO_STATION);
-        if (currentArtwork != null && currentArtwork.length > 0) {
-            description.setArtworkData(currentArtwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER);
-        }
+        description.setArtworkUri(metadata == null ? resourceArtwork("station_logo") : currentArtwork);
         return new MediaItem.Builder().setMediaId(RadioCatalog.LIVE)
                 .setUri(RadioCatalog.STREAM).setMediaMetadata(description.build()).build();
     }
@@ -178,8 +163,12 @@ public final class RadioLibraryService extends MediaLibraryService {
                 .setMediaMetadata(new MediaMetadata.Builder()
                         .setTitle(getString(R.string.live))
                         .setIsBrowsable(true).setIsPlayable(false)
-                        .setArtworkData(tabArtwork, MediaMetadata.PICTURE_TYPE_OTHER)
+                        .setArtworkUri(resourceArtwork("ic_live"))
                         .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_RADIO_STATIONS).build()).build();
+    }
+
+    private Uri resourceArtwork(String name) {
+        return Uri.parse("android.resource://" + getPackageName() + "/drawable/" + name);
     }
 
     final class LibraryCallback implements MediaLibrarySession.Callback {
@@ -243,30 +232,36 @@ public final class RadioLibraryService extends MediaLibraryService {
             try {
                 StationMetadata value = StationMetadata.parse(new String(
                         download(RadioCatalog.NOW_PLAYING, 512 * 1024), StandardCharsets.UTF_8));
-                byte[] image = currentArtwork;
+                // Publish text promptly; a slow image request must not hold the title back.
+                main.post(() -> applyMetadata(value, null, generation));
+                Uri image = cachedArtwork;
                 if (value.artwork.isEmpty()) {
-                    image = defaultArtwork;
+                    image = resourceArtwork("station_logo");
+                    artworkUrl = "";
                 } else if (!value.artwork.equals(artworkUrl)
                         || System.currentTimeMillis() - artworkFetchedAt > 60000) {
                     try {
                         byte[] candidate = download(value.artwork, 2 * 1024 * 1024);
                         if (candidate.length > 0) {
-                            image = candidate;
+                            image = ArtworkProvider.publish(this, candidate);
+                            cachedArtwork = image;
                             artworkUrl = value.artwork;
                             artworkFetchedAt = System.currentTimeMillis();
                         }
                     } catch (Exception ignored) { /* Keep the last valid image. */ }
                 }
-                final byte[] artwork = image;
-                main.post(() -> {
-                    if (destroyed || generation != pollGeneration || !retry.requested()
-                            || engine.getMediaItemCount() != 1) return;
-                    currentArtwork = artwork;
-                    // Same URI and playback configuration: Media3 updates metadata without restarting audio.
-                    engine.replaceMediaItem(0, station(value));
-                });
+                final Uri artwork = image;
+                main.post(() -> applyMetadata(value, artwork, generation));
             } catch (Exception ignored) { /* A metadata outage must not interrupt audio. */ }
         }, 0, 15, TimeUnit.SECONDS);
+    }
+
+    private void applyMetadata(StationMetadata value, @Nullable Uri artwork, int generation) {
+        if (destroyed || generation != pollGeneration || !retry.requested()
+                || engine.getMediaItemCount() != 1) return;
+        if (artwork != null) currentArtwork = artwork;
+        // Same playback URI: updating title/artwork does not reconnect the stream.
+        engine.replaceMediaItem(0, station(value));
     }
 
     private void stopPolling() {
