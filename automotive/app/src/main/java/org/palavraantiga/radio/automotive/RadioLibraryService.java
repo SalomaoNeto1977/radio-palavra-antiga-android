@@ -1,5 +1,8 @@
 package org.palavraantiga.radio.automotive;
 
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import androidx.annotation.Nullable;
@@ -47,6 +50,7 @@ public final class RadioLibraryService extends MediaLibraryService {
     private volatile boolean destroyed;
     private int pollGeneration;
     private byte[] defaultArtwork;
+    private byte[] tabArtwork;
     private volatile byte[] currentArtwork;
     private String artworkUrl = "";
     private long artworkFetchedAt;
@@ -59,6 +63,14 @@ public final class RadioLibraryService extends MediaLibraryService {
         try (InputStream input = getResources().openRawResource(R.raw.station_logo)) {
             defaultArtwork = readBounded(input, 2 * 1024 * 1024);
         } catch (Exception ignored) { defaultArtwork = new byte[0]; }
+        Drawable icon = getDrawable(R.drawable.ic_live);
+        Bitmap tab = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);
+        icon.setBounds(0, 0, 96, 96);
+        icon.draw(new Canvas(tab));
+        ByteArrayOutputStream tabBytes = new ByteArrayOutputStream();
+        tab.compress(Bitmap.CompressFormat.PNG, 100, tabBytes);
+        tabArtwork = tabBytes.toByteArray();
+        tab.recycle();
         currentArtwork = defaultArtwork;
         DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
                 .setUserAgent("RadioPalavraAntiga-Automotive/1.2.0")
@@ -161,6 +173,15 @@ public final class RadioLibraryService extends MediaLibraryService {
                 .setUri(RadioCatalog.STREAM).setMediaMetadata(description.build()).build();
     }
 
+    private MediaItem liveCategory() {
+        return new MediaItem.Builder().setMediaId(RadioCatalog.LIVE_CATEGORY)
+                .setMediaMetadata(new MediaMetadata.Builder()
+                        .setTitle(getString(R.string.live))
+                        .setIsBrowsable(true).setIsPlayable(false)
+                        .setArtworkData(tabArtwork, MediaMetadata.PICTURE_TYPE_OTHER)
+                        .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_RADIO_STATIONS).build()).build();
+    }
+
     final class LibraryCallback implements MediaLibrarySession.Callback {
         @Override public ListenableFuture<LibraryResult<MediaItem>> onGetLibraryRoot(
                 MediaLibrarySession s, MediaSession.ControllerInfo b, @Nullable LibraryParams p) {
@@ -169,17 +190,20 @@ public final class RadioLibraryService extends MediaLibraryService {
         @Override public ListenableFuture<LibraryResult<MediaItem>> onGetItem(
                 MediaLibrarySession s, MediaSession.ControllerInfo b, String id) {
             if (RadioCatalog.ROOT.equals(id)) return Futures.immediateFuture(LibraryResult.ofItem(root(), null));
+            if (RadioCatalog.LIVE_CATEGORY.equals(id)) return Futures.immediateFuture(LibraryResult.ofItem(liveCategory(), null));
             if (RadioCatalog.LIVE.equals(id)) return Futures.immediateFuture(LibraryResult.ofItem(station(null), null));
             return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE));
         }
         @Override public ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> onGetChildren(
                 MediaLibrarySession s, MediaSession.ControllerInfo b, String parent,
                 int page, int pageSize, @Nullable LibraryParams p) {
-            if (!RadioCatalog.ROOT.equals(parent) || page < 0 || pageSize < 1) {
+            if ((!RadioCatalog.ROOT.equals(parent) && !RadioCatalog.LIVE_CATEGORY.equals(parent))
+                    || page < 0 || pageSize < 1) {
                 return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_BAD_VALUE));
             }
+            MediaItem item = RadioCatalog.ROOT.equals(parent) ? liveCategory() : station(null);
             return Futures.immediateFuture(LibraryResult.ofItemList(
-                    page == 0 ? ImmutableList.of(station(null)) : ImmutableList.of(), p));
+                    page == 0 ? ImmutableList.of(item) : ImmutableList.of(), p));
         }
         @Override public ListenableFuture<List<MediaItem>> onAddMediaItems(
                 MediaSession s, MediaSession.ControllerInfo c, List<MediaItem> items) {

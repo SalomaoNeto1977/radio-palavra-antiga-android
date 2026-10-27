@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.media.MediaMetadata;
 import android.media.browse.MediaBrowser;
 import android.media.session.MediaController;
@@ -12,6 +13,11 @@ import android.media.session.PlaybackState;
 import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.uiautomator.By;
+import androidx.test.uiautomator.UiDevice;
+import androidx.test.uiautomator.Until;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -59,6 +65,17 @@ public class RadioCarIntegrationTest {
             assertTrue("Station catalogue timed out", loaded.await(15, TimeUnit.SECONDS));
             assertNotNull("Station catalogue failed", children.get());
             assertEquals(1, children.get().size());
+            assertEquals(RadioCatalog.LIVE_CATEGORY, children.get().get(0).getMediaId());
+            assertTrue(children.get().get(0).isBrowsable());
+            CountDownLatch stationLoaded = new CountDownLatch(1);
+            onMain(() -> browser.get().subscribe(RadioCatalog.LIVE_CATEGORY, new MediaBrowser.SubscriptionCallback() {
+                @Override public void onChildrenLoaded(String parent, List<MediaBrowser.MediaItem> items) {
+                    children.set(items);
+                    stationLoaded.countDown();
+                }
+                @Override public void onError(String parent) { stationLoaded.countDown(); }
+            }));
+            assertTrue("Live category timed out", stationLoaded.await(15, TimeUnit.SECONDS));
             assertEquals(RadioCatalog.LIVE, children.get().get(0).getMediaId());
             assertTrue(children.get().get(0).isPlayable());
 
@@ -67,6 +84,10 @@ public class RadioCarIntegrationTest {
             open.putExtra("android.car.intent.extra.MEDIA_COMPONENT", component.flattenToString());
             open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             onMain(() -> context.startActivity(open));
+            UiDevice device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+            assertTrue("The car must show the live category, not an empty screen",
+                    device.wait(Until.hasObject(By.text(
+                            java.util.regex.Pattern.compile("(?i).*em direto.*"))), 15000));
             MediaController controller = controls;
             controller.getTransportControls().playFromMediaId(RadioCatalog.LIVE, null);
             await(() -> state(controller) == PlaybackState.STATE_PLAYING, 45000);
@@ -75,6 +96,7 @@ public class RadioCarIntegrationTest {
             assertNotNull(metadata.getString(MediaMetadata.METADATA_KEY_TITLE));
             assertFalse(metadata.getString(MediaMetadata.METADATA_KEY_TITLE).trim().isEmpty());
             Log.i("RadioCarTest", "AAOS live playback and metadata confirmed");
+            screenshot(context, "playing");
             controller.getTransportControls().pause();
             await(() -> state(controller) == PlaybackState.STATE_PAUSED
                     || state(controller) == PlaybackState.STATE_STOPPED, 10000);
@@ -82,6 +104,7 @@ public class RadioCarIntegrationTest {
             assertNotEquals("Radio resumed after a manual pause",
                     PlaybackState.STATE_PLAYING, state(controller));
             Log.i("RadioCarTest", "AAOS manual pause confirmed");
+            screenshot(context, "paused");
         } finally {
             if (controls != null) controls.getTransportControls().stop();
             onMain(() -> browser.get().disconnect());
@@ -101,5 +124,16 @@ public class RadioCarIntegrationTest {
     }
     private static void onMain(Runnable action) {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(action);
+    }
+    private static void screenshot(Context context, String state) throws Exception {
+        String label = InstrumentationRegistry.getArguments().getString("screenshotLabel", "landscape");
+        File directory = new File(context.getExternalFilesDir(null), "qa");
+        assertTrue(directory.isDirectory() || directory.mkdirs());
+        Bitmap image = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+        assertNotNull("Screenshot not available", image);
+        try (FileOutputStream file = new FileOutputStream(new File(directory, label + "-" + state + ".png"))) {
+            assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, file));
+        }
+        image.recycle();
     }
 }

@@ -7,6 +7,7 @@ import java.util.Locale;
 /** Public station configuration. Never resolves caller-supplied playback URLs. */
 final class RadioCatalog {
     static final String ROOT = "palavraantiga";
+    static final String LIVE_CATEGORY = "palavraantiga:live-category";
     static final String LIVE = "palavraantiga:live";
     static final String NAME = "Rádio Palavra Antiga";
     static final String STREAM = "https://radio.palavraantiga.org/listen/palavraantiga/radio.mp3";

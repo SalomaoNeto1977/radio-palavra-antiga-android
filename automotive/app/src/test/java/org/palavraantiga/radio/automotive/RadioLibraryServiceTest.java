@@ -37,11 +37,15 @@ public class RadioLibraryServiceTest {
         assertFalse(session.getPlayer().getPlayWhenReady());
         assertEquals(Player.STATE_IDLE, session.getPlayer().getPlaybackState());
     }
-    @Test public void rootContainsOneDirectlyPlayableStationAndSupportsPagination() throws Exception {
+    @Test public void rootContainsBrowsableTabWithOnePlayableStationAndSupportsPagination() throws Exception {
         LibraryResult<ImmutableList<MediaItem>> first = callback.onGetChildren(session, null, RadioCatalog.ROOT, 0, 10, null).get();
         assertEquals(1, first.value.size());
-        assertEquals(RadioCatalog.LIVE, first.value.get(0).mediaId);
-        assertEquals(Boolean.TRUE, first.value.get(0).mediaMetadata.isPlayable);
+        assertEquals(RadioCatalog.LIVE_CATEGORY, first.value.get(0).mediaId);
+        assertEquals(Boolean.TRUE, first.value.get(0).mediaMetadata.isBrowsable);
+        assertEquals(Boolean.FALSE, first.value.get(0).mediaMetadata.isPlayable);
+        MediaItem station = callback.onGetChildren(session, null, RadioCatalog.LIVE_CATEGORY, 0, 10, null).get().value.get(0);
+        assertEquals(RadioCatalog.LIVE, station.mediaId);
+        assertEquals(Boolean.TRUE, station.mediaMetadata.isPlayable);
         assertTrue(callback.onGetChildren(session, null, RadioCatalog.ROOT, 1, 10, null).get().value.isEmpty());
         assertEquals(SessionError.ERROR_BAD_VALUE,
                 callback.onGetChildren(session, null, "unknown", 0, 10, null).get().resultCode);
