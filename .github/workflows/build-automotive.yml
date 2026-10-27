@@ -110,6 +110,8 @@ jobs:
             mkdir -p car-verification
             adb install packages/Radio-Palavra-Antiga-Automotive-1.2.1-teste.apk
             adb install packages/automotive/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell wm size 1024x768
+            adb shell wm density 160
             adb shell am instrument -w -e screenshotLabel landscape org.palavraantiga.radio.automotive.debug.test/androidx.test.runner.AndroidJUnitRunner | tee car-verification/instrumentation-landscape.txt
             grep -q 'OK (1 test)' car-verification/instrumentation-landscape.txt
             adb shell wm size 800x1280
